@@ -1,0 +1,10 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: false
