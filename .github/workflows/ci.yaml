@@ -1,0 +1,81 @@
+name: CI - test on PR to develop
+
+on:
+  pull_request:
+    branches: [ "develop" ]
+    types: [ "opened", "synchronize", "reopened" ]
+
+env:
+  SPRING_PROFILES_ACTIVE: test
+
+
+  REDIS_HOST: localhost
+  REDIS_PORT: 6379
+
+  DB_HOST: localhost
+  DB_PORT: 5432
+  DB_NAME: testdb
+  DB_USER: test
+  DB_PASSWORD: test
+
+
+
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test -d testdb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # [1] 소스코드를 runner에 내려받음
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # [2] JDK 17 설치 및 Gradle 의존성 캐시 활성화
+      - name: Set up JDK 17 (Temurin) + Gradle cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "gradle"
+
+      # [3] gradlew 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # [4] 전체 테스트 실행 (PostgreSQL + Redis 서비스 컨테이너 사용)
+      - name: Run tests
+        run: ./gradlew clean test
+
+      # [5] 테스트 실패 시 결과 아티팩트 업로드
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: build/reports/tests/test
