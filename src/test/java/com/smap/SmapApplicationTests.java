@@ -1,5 +1,7 @@
 package com.smap;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smap.global.external.ai.dto.response.ChatResponseDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -12,6 +14,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -21,9 +24,20 @@ class SmapApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
 	@Test
 	void contextLoads() {
 	}
+
+    @Test
+    void applicationObjectMapperReadsAiMessageWithoutJacksonized() throws Exception {
+        ChatResponseDTO response = objectMapper.readValue("""
+                {"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"answer","refusal":null}}]}
+                """, ChatResponseDTO.class);
+        assertEquals("answer", response.getChoices().get(0).getMessage().getContent());
+    }
 
     @Test
     void exampleCanBeCreatedWithoutAuthentication() throws Exception {

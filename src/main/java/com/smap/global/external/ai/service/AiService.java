@@ -4,6 +4,9 @@ import com.smap.global.external.ai.client.AiClient;
 import com.smap.global.external.ai.dto.request.ChatMessageDTO;
 import com.smap.global.external.ai.dto.request.ChatRequestDTO;
 import com.smap.global.external.ai.dto.response.ChatResponseDTO;
+import com.smap.global.external.ai.dto.response.ChatChoiceDTO;
+import com.smap.global.external.ai.exception.AiErrorCode;
+import com.smap.global.common.exception.GeneralException;
 import com.smap.global.external.ai.properties.AiProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +31,19 @@ public class AiService {
                 .build();
 
         ChatResponseDTO response = aiClient.chat(request);
-        return response.getChoices().get(0).getMessage().getContent();
+        if (response == null || response.getChoices() == null || response.getChoices().isEmpty()
+                || response.getChoices().get(0) == null) {
+            throw new GeneralException(AiErrorCode.INVALID_RESPONSE);
+        }
+        ChatChoiceDTO choice = response.getChoices().get(0);
+        ChatMessageDTO message = choice.getMessage();
+        if (message == null || message.getContent() == null || message.getContent().isBlank()) {
+            if ("content_filter".equals(choice.getFinishReason())) {
+                throw new GeneralException(AiErrorCode.CONTENT_FILTERED);
+            }
+            throw new GeneralException(AiErrorCode.EMPTY_RESPONSE);
+        }
+        return message.getContent();
     }
 
     public String chat(String userMessage) {

@@ -1,6 +1,6 @@
 # Smap API
 
-Java 17과 Spring Boot 기반의 API 프로젝트입니다. 현재 예제 CRUD 도메인, 공통 응답·예외 처리, 로깅, AI 호출용 서비스, PostgreSQL·Redis 개발 환경을 구성했습니다.
+Java 17과 Spring Boot 기반의 API 프로젝트입니다. 현재 예제 생성·조회 도메인, 공통 응답·예외 처리, 로깅, AI 호출용 서비스, PostgreSQL·Redis 개발 환경을 구성했습니다.
 
 로그인·회원·이미지 업로드 기능은 없으며, Spring Security·JWT·OAuth2·Flyway·QueryDSL은 사용하지 않습니다.
 
@@ -20,7 +20,7 @@ Java 17과 Spring Boot 기반의 API 프로젝트입니다. 현재 예제 CRUD �
 | 개발 지원 | Lombok, DevTools |
 | 배포 파일 | Dockerfile, Docker Compose, GitHub Actions |
 
-Redis는 공용 인프라로 준비되어 있으며 현재 예제 CRUD에서는 사용하지 않습니다. Spring Retry 등의 의존성도 포함되어 있지만 별도 업무 기능은 구현되어 있지 않습니다.
+Redis는 공용 인프라로 준비되어 있으며 현재 예제 생성·조회에서는 사용하지 않습니다. Spring Retry 등의 의존성도 포함되어 있지만 별도 업무 기능은 구현되어 있지 않습니다.
 
 ## 프로젝트 구조
 
