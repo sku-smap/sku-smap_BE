@@ -64,8 +64,14 @@ jobs:
           compose = base64.b64encode(Path(os.environ['COMPOSE_FILE']).read_bytes()).decode()
           commands = [
               'set -eu',
-              'mkdir -p /home/ubuntu/smap',
+              'mkdir -p /home/ubuntu/smap/db/init',
               f"printf '%s' '{compose}' | base64 -d > /home/ubuntu/smap/docker-compose-prod.yaml",
+          ]
+          # postgres 초기화 SQL (compose가 ./db/init 을 마운트)
+          for sql in sorted(Path('db/init').glob('*.sql')):
+              encoded = base64.b64encode(sql.read_bytes()).decode()
+              commands.append(f"printf '%s' '{encoded}' | base64 -d > /home/ubuntu/smap/db/init/{sql.name}")
+          commands += [
               'cd /home/ubuntu/smap',
               'test -f .env.prod',
           ]

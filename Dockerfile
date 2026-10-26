@@ -12,6 +12,7 @@ WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 ENTRYPOINT ["java", \
   "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=75.0", \
+  "-Xms256m", \
+  "-Xmx384m", \
   "-XX:+ExitOnOutOfMemoryError", \
   "-jar", "app.jar"]
