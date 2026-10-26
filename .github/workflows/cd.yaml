@@ -66,6 +66,7 @@ jobs:
               'set -eu',
               'mkdir -p /home/ubuntu/smap/db/init',
               f"printf '%s' '{compose}' | base64 -d > /home/ubuntu/smap/docker-compose-prod.yaml",
+              "find /home/ubuntu/smap/db/init -maxdepth 1 -name '*.sql' -delete",
           ]
           # postgres 초기화 SQL (compose가 ./db/init 을 마운트)
           for sql in sorted(Path('db/init').glob('*.sql')):
@@ -80,6 +81,10 @@ jobs:
           commands += [
               'aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"',
               'docker compose --env-file .env.prod -f docker-compose-prod.yaml pull app',
+              'docker compose --env-file .env.prod -f docker-compose-prod.yaml up -d --wait --wait-timeout 180 postgres',
+              'for f in db/init/*.sql; do [ -e "$f" ] || continue; '
+              'docker compose --env-file .env.prod -f docker-compose-prod.yaml exec -T postgres '
+              'sh -c \'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"\' < "$f"; done',
               'docker compose --env-file .env.prod -f docker-compose-prod.yaml up -d --wait --wait-timeout 180',
               'docker compose --env-file .env.prod -f docker-compose-prod.yaml ps',
           ]
