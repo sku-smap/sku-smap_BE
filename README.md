@@ -35,14 +35,10 @@ smap/
 │   ├── main/
 │   │   ├── java/com/smap/
 │   │   │   ├── SmapApplication.java
-│   │   │   ├── domain/example/
-│   │   │   │   ├── controller/
-│   │   │   │   ├── dto/request/
-│   │   │   │   ├── dto/response/
-│   │   │   │   ├── entity/
-│   │   │   │   ├── exception/
-│   │   │   │   ├── repository/
-│   │   │   │   └── service/
+│   │   │   ├── domain/
+│   │   │   │   ├── graph/           # 노드·간선 조회
+│   │   │   │   ├── place/           # 장소 매핑
+│   │   │   │   └── route/           # 경로 탐색·안내 API
 │   │   │   └── global/
 │   │   │       ├── aop/             # API 호출 경로·처리 시간 기록
 │   │   │       ├── common/          # 공통 엔티티·응답·예외 처리
@@ -90,7 +86,7 @@ DB_NAME=smap
 DB_USER=smap
 DB_PASSWORD=1234
 REDIS_HOST=localhost
-REDIS_PORT=6379
+REDIS_PORT=6380
 REDIS_PASSWORD=1234
 OPENAI_API_KEY=
 ```
@@ -160,19 +156,21 @@ SQL 마이그레이션 도구와 마이그레이션 파일은 없습니다. 개�
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| POST | `/api/v1/example` | 예제 생성. JSON 본문: `{"name":"예제"}` |
-| GET | `/api/v1/example/{id}` | ID로 예제 조회 |
+| POST | `/api/v1/routes` | 노드 ID와 이동 조건으로 경로·장소·사진 URL 조회 |
+| GET | `/api/v1/places?keyword=검색어` | 장소 이름·별명·건물·호실 검색 및 도착 노드 매핑 조회 |
+| GET | `/api/v1/nodes` | 전체 사진 노드 목록 조회 |
+| GET | `/api/v1/campus-map` | 캠퍼스 둘러보기용 전체 노드·사진 URL·장소·방향 간선 조회 |
 | GET | `/actuator/health` | 상태 확인. 상세 정보 숨김 |
 | GET | `/actuator/prometheus` | Prometheus 수집용 지표 |
 
-예제 API는 다음 공통 응답 형식을 사용합니다.
+API는 다음 공통 응답 형식을 사용합니다. 상세 명세는 [API 문서](docs/API.md), 탐색 정책은 [경로 안내](docs/ROUTING.md)를 참고합니다.
 
 ```json
 {
   "success": true,
   "code": "200",
   "message": "요청이 성공했습니다.",
-  "data": { "id": 1, "name": "예제" }
+  "data": { "nodes": [], "segments": [], "totalSteps": 0 }
 }
 ```
 

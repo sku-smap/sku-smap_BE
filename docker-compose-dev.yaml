@@ -25,7 +25,7 @@ services:
     image: redis:7-alpine
     container_name: smap-redis
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-6380}:6379"
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     command:
