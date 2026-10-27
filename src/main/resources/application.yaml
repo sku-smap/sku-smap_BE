@@ -24,6 +24,8 @@ spring:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
       password: ${REDIS_PASSWORD:}
+      connect-timeout: 1s
+      timeout: 1s
 
   servlet:
     multipart:
