@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS edges (
     move_type text NOT NULL,
     description text,
     PRIMARY KEY (from_node_id, to_node_id, move_type),
+    CONSTRAINT edges_move_type_check CHECK (move_type IN ('', 'WALK', 'STAIRS', 'ELEVATOR', 'DOOR')),
     CHECK (from_node_id <> to_node_id)
 );
 

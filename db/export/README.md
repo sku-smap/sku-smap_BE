@@ -6,7 +6,9 @@
 - edges: 918개
 - places: 969개
 
-테이블, 기본키, 외래키, 인덱스와 컬럼명을 명시한 INSERT문을 포함한다. 소유자·권한·DB 생성·테이블 삭제 명령은 없다. example 테이블, 확장, Redis와 이미지는 포함하지 않는다. 경로 가중치 1은 애플리케이션에서 적용하므로 DB에 시간이나 가중치 컬럼을 추가하지 않는다.
+테이블, 기본키, 외래키, 인덱스와 컬럼명을 명시한 INSERT문을 포함한다. 소유자·권한·DB 생성·테이블 삭제 명령은 없다. example 테이블, 확장, Redis와 이미지는 포함하지 않는다.
+탐색 비용은 RouteWeightPolicy에서 요청 option에 따라 동적으로 계산한다. SHORTEST는 모든 간선 1, 기본 OUTDOOR_FIRST는 실내·지하 끝점마다 +1, INDOOR_UNDERGROUND_FIRST는 야외 끝점마다 +1이다. COMFORTABLE은 계단 +5와 야외·지하 끝점마다 +1을 기본 1에 더한다. 지하는 편한길에서 야외로 취급한다.
+DB에 시간·가중치 컬럼은 없으며 totalSteps는 비용 합이 아닌 통합 전 간선 수다. 요청의 option 생략·null은 OUTDOOR_FIRST이다.
 
 ## 실행
 

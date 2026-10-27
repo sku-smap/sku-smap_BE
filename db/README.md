@@ -9,6 +9,7 @@
 - init/03-nodes-seed.sql: data/smap_nodes.csv에서 생성한 328개 노드의 재실행 가능한 시드.
 - init/04-edges-seed.sql: 연결 CSV의 918개 방향 간선과 안내 문구를 적재한다.
 - init/05-places-seed.sql: 보관본에서 제외·보류 범위와 북악관 ID 변경을 반영한 장소 969개.
+- init/06-edges-move-type-constraint.sql: 기존 DB 이동 유형 정규화·검증 및 허용값 CHECK 마이그레이션.
 
 이전 데이터 시드와 연결 수정 SQL 03~06은 보관 폴더로 옮겼다.
 빈 DB로 초기화하면 새 노드·간선·장소를 순서대로 자동 적재한다. 새 03-nodes-seed.sql은 기존 03-campus-seed.sql과 다른 파일이다.
@@ -24,9 +25,15 @@
 경로 API는 새 간선을 사용하고 구간별 description을 그대로 반환한다.
 사용자가 시간 컬럼을 없앴으므로 DB·엔티티·API에서 시간을 제거했다. 추정 시간은 넣지 않는다.
 352행의 빈 move_type도 보완하지 않고 빈 문자열로 저장한다. API는 해당 이동 유형을 NULL로 표현한다.
-모든 간선의 가중치는 1이며 다익스트라로 이동 구간 수를 최소화한다. API에는 totalSteps를 반환한다. 예상 시간 필드는 없다.
-외부경로·엘리베이터·지하도보 우선 조건은 현재 적용하지 않으며 요청에는 출발·도착 노드 ID만 받는다.
-이전 조건 구현과 관련 테스트는 archive/deferred-route-preferences에 보관했다.
+move_type 저장 허용값은 빈 문자열, WALK, STAIRS, ELEVATOR, DOOR이다. 신규 초기화·JPA 생성 스키마·RDS 이관 SQL에 동일한 CHECK를 적용한다.
+기존 DB는 백업 후 06 SQL을 적용한다. 알려진 유형의 공백·대소문자만 정리하며, 알 수 없는 값이나 복합 기본키 충돌이 있으면 전체 작업을 중단한다. 운영 배포의 기존 db/init/*.sql 실행 절차에 포함되며 EC2에는 이번 작업에서 직접 실행하지 않았다.
+경로 요청은 fromNodeId, toNodeId와 단일 option을 받으며 option 생략·null은 OUTDOOR_FIRST이다.
+SHORTEST만 모든 간선 비용을 1로 두어 이동 구간 수를 최소화한다. 나머지는 기본 1에 조건별 비용을 더한다.
+OUTDOOR_FIRST는 실내·지하 끝점마다 +1, INDOOR_UNDERGROUND_FIRST는 야외 끝점마다 +1이다.
+COMFORTABLE은 계단 +5와 야외·지하 끝점마다 +1을 함께 적용한다. 지하는 편한길에서 야외로, 실내지하우선에서 실내로 취급한다.
+모든 조건은 통행 금지가 아닌 비용 선호다. totalSteps는 통합 전 실제 간선 수이며 가중치 합이 아니다. 예상 시간은 반환하지 않는다.
+정책 구현은 RouteWeightPolicy와 RouteController를 기준으로 한다.
+연속 엘리베이터는 API 응답에서 구간·안내를 통합하되 DB의 원본 간선은 유지한다. 상세 명세는 ../docs/API.md를 참고한다.
 연결 방향을 그대로 보존하며 역방향을 자동 생성하지 않았다. s1014_101449는 원본 방향상 버스정류장에서 도달할 수 없으므로 임의 보완하지 않았다.
 
 전체 DB 백업: archive/db-before-node-reset-2026-10-27/smap-001949128.dump.

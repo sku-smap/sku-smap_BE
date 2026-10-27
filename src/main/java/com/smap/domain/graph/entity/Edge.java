@@ -4,12 +4,14 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Check;
 
 /** 연결 CSV의 10개 컬럼을 그대로 저장한다. 시간이나 보정 정보를 추가하지 않는다. */
 @Getter
 @Entity
 @Table(name = "edges")
 @IdClass(EdgeId.class)
+@Check(name = "edges_move_type_check", constraints = "move_type IN ('', 'WALK', 'STAIRS', 'ELEVATOR', 'DOOR')")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Edge {
     /** 출발 노드 ID. */

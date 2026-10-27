@@ -39,7 +39,8 @@
         to_photo text,
         move_type text NOT NULL,
         description text,
-        CONSTRAINT edges_check CHECK ((from_node_id <> to_node_id))
+        CONSTRAINT edges_check CHECK ((from_node_id <> to_node_id)),
+        CONSTRAINT edges_move_type_check CHECK (move_type IN ('', 'WALK', 'STAIRS', 'ELEVATOR', 'DOOR'))
     );
 
 
