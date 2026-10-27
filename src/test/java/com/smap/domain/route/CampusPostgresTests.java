@@ -36,6 +36,38 @@ class CampusPostgresTests {
     @Autowired RouteService routes;
     @Autowired DijkstraPathFinder pathFinder;
     @Autowired JdbcTemplate jdbc;
+    @Autowired com.smap.domain.place.service.PlaceService placeSearch;
+    @Autowired com.smap.domain.graph.service.NodeService nodeLookup;
+
+    /** 실제 DB의 전체 그래프·사진·장소 매핑을 응답에 누락 없이 보존한다. */
+    @Test
+    void campusMapIncludesEveryConnectionAndPlace() {
+        var graph = graphs.load();
+        var places = placeSearch.search(null);
+        var map = com.smap.domain.graph.dto.response.CampusMapResponseDTO.from(graph, places, filename -> null);
+        assertEquals(328, map.totalNodes());
+        assertEquals(918, map.totalEdges());
+        assertEquals(969, map.totalPlaces());
+        assertEquals(969, map.nodes().stream().mapToInt(node -> node.places().size()).sum());
+        assertTrue(map.edges().stream().allMatch(edge -> graph.nodes().containsKey(edge.fromNodeId())
+                && graph.nodes().containsKey(edge.toNodeId())));
+        assertTrue(map.nodes().stream().allMatch(node -> node.places().stream()
+                .allMatch(place -> place.arriveNodeId().equals(node.nodeId()))));
+    }
+
+    /** 실제 PostgreSQL에서 전체 목록과 장소 검색→길찾기 연결을 확인한다. */
+    @Test
+    void searchesPlacesAndListsAllNodes() {
+        assertEquals(328, nodeLookup.findAll().size());
+        assertEquals(969, placeSearch.search(null).size());
+        var results = placeSearch.search("도시공학과 실습실");
+        var selected = results.stream().filter(place -> place.placeId().equals("r-eunju1-202"))
+                .findFirst().orElseThrow();
+        assertEquals("EJ1_02_E", selected.arriveNodeId());
+        assertTrue(nodes.existsById(selected.arriveNodeId()));
+        assertEquals(0, routes.find(selected.arriveNodeId(), selected.arriveNodeId()).totalSteps());
+        assertTrue(placeSearch.search("이름이없는장소_검증").isEmpty());
+    }
 
     /** 4개 컬럼과 328개 노드, 사용자 확인 사진 및 변경된 북악관 ID를 확인한다. */
     @Test
