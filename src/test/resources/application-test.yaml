@@ -20,3 +20,8 @@ decorator:
     p6spy:
       enable-logging: false
 
+# 일반 테스트 데이터가 Redis에 남지 않도록 캐시는 별도 통합 테스트에서만 활성화한다.
+campus:
+  cache:
+    enabled: false
+

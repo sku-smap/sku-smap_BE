@@ -40,13 +40,13 @@ class SmapApplicationTests {
     }
 
     @Test
-    void exampleCanBeCreatedWithoutAuthentication() throws Exception {
-        mockMvc.perform(post("/api/v1/example")
+    void routeRequestsAreValidatedWithoutAuthentication() throws Exception {
+        mockMvc.perform(post("/api/v1/routes")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"public example\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.name").value("public example"));
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.code").value("COMMON_400_VALIDATION"));
     }
 
     @Test
@@ -56,12 +56,13 @@ class SmapApplicationTests {
                 .andExpect(jsonPath("$.security").doesNotExist())
                 .andExpect(jsonPath("$.components.securitySchemes").doesNotExist())
                 .andExpect(jsonPath("$.paths['/api/v1/auth/login']").doesNotExist())
-                .andExpect(jsonPath("$.paths['/api/v1/users/me']").doesNotExist());
+                .andExpect(jsonPath("$.paths['/api/v1/users/me']").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/v1/example']").doesNotExist());
     }
 
     @Test
     void frontendCorsWorksWithoutSecurityConfiguration() throws Exception {
-        mockMvc.perform(options("/api/v1/example")
+        mockMvc.perform(options("/api/v1/routes")
                         .header("Origin", "http://localhost:3000")
                         .header("Access-Control-Request-Method", "POST")
                         .header("Access-Control-Request-Headers", "content-type"))
