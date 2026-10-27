@@ -35,14 +35,10 @@ smap/
 │   ├── main/
 │   │   ├── java/com/smap/
 │   │   │   ├── SmapApplication.java
-│   │   │   ├── domain/example/
-│   │   │   │   ├── controller/
-│   │   │   │   ├── dto/request/
-│   │   │   │   ├── dto/response/
-│   │   │   │   ├── entity/
-│   │   │   │   ├── exception/
-│   │   │   │   ├── repository/
-│   │   │   │   └── service/
+│   │   │   ├── domain/
+│   │   │   │   ├── graph/           # 노드·간선 조회
+│   │   │   │   ├── place/           # 장소 매핑
+│   │   │   │   └── route/           # 경로 탐색·안내 API
 │   │   │   └── global/
 │   │   │       ├── aop/             # API 호출 경로·처리 시간 기록
 │   │   │       ├── common/          # 공통 엔티티·응답·예외 처리
@@ -160,19 +156,18 @@ SQL 마이그레이션 도구와 마이그레이션 파일은 없습니다. 개�
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| POST | `/api/v1/example` | 예제 생성. JSON 본문: `{"name":"예제"}` |
-| GET | `/api/v1/example/{id}` | ID로 예제 조회 |
+| POST | `/api/v1/routes` | 노드 ID와 이동 조건으로 경로·장소·사진 URL 조회 |
 | GET | `/actuator/health` | 상태 확인. 상세 정보 숨김 |
 | GET | `/actuator/prometheus` | Prometheus 수집용 지표 |
 
-예제 API는 다음 공통 응답 형식을 사용합니다.
+API는 다음 공통 응답 형식을 사용합니다. 상세 경로 응답은 `docs/ROUTING.md`를 참고합니다.
 
 ```json
 {
   "success": true,
   "code": "200",
   "message": "요청이 성공했습니다.",
-  "data": { "id": 1, "name": "예제" }
+  "data": { "nodes": [], "segments": [], "totalSteps": 0 }
 }
 ```
 
