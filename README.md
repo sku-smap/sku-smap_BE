@@ -298,8 +298,12 @@ IMAGE_TAG=latest
 
 1. `main` push → AWS OIDC 인증 → ECR 저장소 존재 확인 → ECR 로그인.
 2. Dockerfile로 이미지 빌드 → `latest`와 커밋 SHA 태그 게시.
-3. SSM으로 운영 Compose 파일을 `/home/ubuntu/smap`에 동기화.
-4. EC2의 IAM 역할로 ECR 로그인 → 해당 SHA 이미지 pull → `docker compose up -d --wait`로 상태 확인.
+3. 운영 Compose·db/init SQL을 이미지의 `/opt/smap/deploy`에 포함한다. SSM에는 파일 내용 없이 짧은 실행 명령만 전달한다.
+4. EC2의 IAM 역할로 ECR 로그인 → 해당 SHA 이미지 pull → 실행하지 않은 임시 컨테이너에서 배포 파일 추출.
+5. 기존 초기화 SQL을 `.deploy.*/previous-init`에 보관하고 새 파일로 교체한다. 서버의 `.env.prod`는 유지한다.
+6. PostgreSQL 기동 → 초기화·시드·마이그레이션 SQL을 순서대로 적용 → 앱·Redis 기동 및 상태 확인.
+
+SQL을 Base64로 SSM 파라미터에 직접 넣지 않으므로 데이터 증가가 SSM 명령 크기에 영향을 주지 않는다. 명령 생성기는 48KB 상한을 검사한다. 배포 파일 전송에 별도 S3 버킷이나 추가 IAM 권한은 필요하지 않다.
 
 여러 배포가 겹치지 않도록 워크플로우를 순서대로 실행합니다. 앱뿐 아니라 DB·Redis도 상태 확인 대상이며, 앱 health가 실패하면 배포도 실패합니다.
 

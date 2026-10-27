@@ -56,6 +56,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Validate deployment command generator
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
+
       # [2] JDK 17 설치 및 Gradle 의존성 캐시 활성화
       - name: Set up JDK 17 (Temurin) + Gradle cache
         uses: actions/setup-java@v5
