@@ -15,7 +15,6 @@ concurrency:
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'ap-northeast-2' }}
   ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY || 'smap-api' }}
-  COMPOSE_FILE: docker-compose-prod.yaml
 
 jobs:
   deploy:
@@ -24,6 +23,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Validate deployment command generator
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,46 +55,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
-        run: |
-          python3 <<'PY'
-          import base64
-          import json
-          import os
-          import shlex
-          from pathlib import Path
-
-          compose = base64.b64encode(Path(os.environ['COMPOSE_FILE']).read_bytes()).decode()
-          commands = [
-              'set -eu',
-              'mkdir -p /home/ubuntu/smap/db/init',
-              f"printf '%s' '{compose}' | base64 -d > /home/ubuntu/smap/docker-compose-prod.yaml",
-              "find /home/ubuntu/smap/db/init -maxdepth 1 -name '*.sql' -delete",
-          ]
-          # postgres 초기화 SQL (compose가 ./db/init 을 마운트)
-          for sql in sorted(Path('db/init').glob('*.sql')):
-              encoded = base64.b64encode(sql.read_bytes()).decode()
-              commands.append(f"printf '%s' '{encoded}' | base64 -d > /home/ubuntu/smap/db/init/{sql.name}")
-          commands += [
-              'cd /home/ubuntu/smap',
-              'test -f .env.prod',
-          ]
-          for key in ('AWS_REGION', 'ECR_REGISTRY', 'ECR_REPOSITORY', 'IMAGE_TAG'):
-              commands.append(f'export {key}={shlex.quote(os.environ[key])}')
-          commands += [
-              'aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"',
-              'docker compose --env-file .env.prod -f docker-compose-prod.yaml pull app',
-              'docker compose --env-file .env.prod -f docker-compose-prod.yaml up -d --wait --wait-timeout 180 postgres',
-              'for f in db/init/*.sql; do [ -e "$f" ] || continue; '
-              'docker compose --env-file .env.prod -f docker-compose-prod.yaml exec -T postgres '
-              'sh -c \'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"\' < "$f"; done',
-              'docker compose --env-file .env.prod -f docker-compose-prod.yaml up -d --wait --wait-timeout 180',
-              'docker compose --env-file .env.prod -f docker-compose-prod.yaml ps',
-          ]
-          Path('ssm-parameters.json').write_text(json.dumps({
-              'commands': commands,
-              'executionTimeout': ['600'],
-          }))
-          PY
+        run: python3 .github/scripts/prepare_ssm_deployment.py
 
       - name: Deploy on EC2 via SSM
         env:
