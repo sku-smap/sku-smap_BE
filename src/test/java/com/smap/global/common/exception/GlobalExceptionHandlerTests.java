@@ -1,7 +1,7 @@
 package com.smap.global.common.exception;
 
-import com.smap.domain.example.dto.request.ExampleRequestDTO;
-import com.smap.domain.example.exception.ExampleErrorCode;
+import com.smap.domain.route.exception.RouteErrorCode;
+import jakarta.validation.constraints.NotBlank;
 import feign.FeignException;
 import feign.Request;
 import feign.Response;
@@ -93,7 +93,7 @@ class GlobalExceptionHandlerTests {
 
     @ParameterizedTest
     @CsvSource({
-            "domain,404,EXAMPLE_404",
+            "domain,404,ROUTE_404_NODE",
             "conflict,409,COMMON_409_DATA_CONFLICT",
             "database,503,COMMON_503_DATABASE_UNAVAILABLE",
             "upload,413,COMMON_413_FILE_TOO_LARGE",
@@ -130,7 +130,7 @@ class GlobalExceptionHandlerTests {
     @RestController
     static class ErrorTestController {
         @PostMapping(value = "/test/body", consumes = MediaType.APPLICATION_JSON_VALUE)
-        ExampleRequestDTO body(@Valid @RequestBody ExampleRequestDTO request) {
+        ValidationBody body(@Valid @RequestBody ValidationBody request) {
             return request;
         }
 
@@ -147,7 +147,7 @@ class GlobalExceptionHandlerTests {
         @GetMapping("/test/failure/{kind}")
         void failure(@PathVariable("kind") String kind) {
             throw switch (kind) {
-                case "domain" -> new GeneralException(ExampleErrorCode.EXAMPLE_NOT_FOUND);
+                case "domain" -> new GeneralException(RouteErrorCode.NODE_NOT_FOUND);
                 case "conflict" -> new DataIntegrityViolationException("internal-secret");
                 case "database" -> new DataAccessResourceFailureException("internal-secret");
                 case "upload" -> new MaxUploadSizeExceededException(1);
@@ -176,6 +176,9 @@ class GlobalExceptionHandlerTests {
                     .request(request).body("internal-secret", StandardCharsets.UTF_8).build());
         }
     }
+
+    /** 공통 입력 검증을 예제 도메인과 독립적으로 검증하는 테스트 전용 본문이다. */
+    record ValidationBody(@NotBlank String name) {}
 
     @ResponseStatus(HttpStatus.FORBIDDEN)
     static class ForbiddenTestException extends RuntimeException {
