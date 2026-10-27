@@ -1,5 +1,7 @@
 # 경로 조회 API
 
+요청·응답 필드, 오류 코드, 호출 예시는 [API.md](API.md)를 참고한다. 아래는 탐색 정책 요약이다.
+
 `POST /api/v1/routes`
 
 ```json
