@@ -26,6 +26,8 @@ public class PhotoStorageProperties {
     /** 로컬 .env 또는 프로세스 환경에서 읽으며 소스에 실제 키를 기록하지 않는다. */
     private String accessKeyId = "";
     private String secretAccessKey = "";
+    /** STS 등 임시 자격 증명을 직접 설정할 때 함께 전달하는 토큰이다. */
+    private String sessionToken = "";
     @Min(1)
     @Max(604800)
     private long urlTtlSeconds = 3600;

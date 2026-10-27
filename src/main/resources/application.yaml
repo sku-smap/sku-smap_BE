@@ -66,7 +66,14 @@ storage:
     prefix: ${S3_PHOTOS_PREFIX:}
     access-key-id: ${AWS_ACCESS_KEY_ID:}
     secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+    session-token: ${AWS_SESSION_TOKEN:}
     url-ttl-seconds: ${S3_PHOTOS_URL_TTL_SECONDS:3600}
+
+# 전체 지도·노드·장소 목록의 DB 데이터 캐시. 사진 URL은 저장하지 않는다.
+campus:
+  cache:
+    enabled: ${CAMPUS_CACHE_ENABLED:true}
+    ttl-seconds: ${CAMPUS_CACHE_TTL_SECONDS:300}
 
 management:
   endpoints:

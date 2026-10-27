@@ -23,7 +23,25 @@ class PhotoUrlServiceTests {
         try (var presigner = new PhotoStorageConfig().photoPresigner(settings)) {
             String query = URI.create(new PhotoUrlService(presigner, settings).createUrl("사진.jpg")).getRawQuery();
             assertTrue(query.contains("X-Amz-Credential=configured-test-access%2F"));
+            assertFalse(query.contains("X-Amz-Security-Token"));
         }
+        settings.setSecretAccessKey("");
+        assertThrows(IllegalStateException.class, () -> new PhotoStorageConfig().photoPresigner(settings));
+    }
+
+    /** 임시 자격 증명은 세션 토큰까지 서명 URL에 포함한다. */
+    @Test
+    void explicitSessionCredentialsIncludeSessionToken() {
+        var settings = new PhotoStorageProperties();
+        settings.setAccessKeyId("session-test-access");
+        settings.setSecretAccessKey("session-test-secret");
+        settings.setSessionToken("session+token/value=");
+        try (var presigner = new PhotoStorageConfig().photoPresigner(settings)) {
+            String query = URI.create(new PhotoUrlService(presigner, settings).createUrl("사진.jpg")).getRawQuery();
+            assertTrue(query.contains("X-Amz-Security-Token=session%2Btoken%2Fvalue%3D"));
+            assertTrue(query.contains("X-Amz-Credential=session-test-access%2F"));
+        }
+        settings.setAccessKeyId("");
         settings.setSecretAccessKey("");
         assertThrows(IllegalStateException.class, () -> new PhotoStorageConfig().photoPresigner(settings));
     }
