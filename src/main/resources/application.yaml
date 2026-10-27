@@ -57,6 +57,17 @@ ai:
     model: gpt-4o-mini
     max-tokens: 2048
 
+# 비공개 S3 사진은 DB 파일명을 그대로 키로 사용한다. 자격 증명은 AWS 기본 체인에서 읽는다.
+storage:
+  photos:
+    enabled: ${S3_PHOTOS_ENABLED:true}
+    bucket: ${S3_PHOTOS_BUCKET:smap-photos-450974103987-ap-northeast-2-an}
+    region: ${AWS_REGION:ap-northeast-2}
+    prefix: ${S3_PHOTOS_PREFIX:}
+    access-key-id: ${AWS_ACCESS_KEY_ID:}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+    url-ttl-seconds: ${S3_PHOTOS_URL_TTL_SECONDS:3600}
+
 management:
   endpoints:
     web:
