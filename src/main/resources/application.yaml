@@ -1,4 +1,11 @@
 spring:
+  cloud:
+    openfeign:
+      client:
+        config:
+          stt:
+            connect-timeout: 2000
+            read-timeout: 3000
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
 
@@ -58,6 +65,29 @@ ai:
     base-url: https://api.openai.com
     model: gpt-4o-mini
     max-tokens: 2048
+    embedding-model: text-embedding-3-small
+    embedding-dimensions: 1024
+
+stt:
+  max-audio-bytes: 1048576
+  max-duration-ms: 15000
+  oracle:
+    base-url: ${STT_BASE_URL:https://stt.eunhasu03.cloud}
+    token: ${STT_TOKEN:}
+    connect-timeout-ms: 2000
+    base-timeout-ms: 2000
+    per-audio-ms: 1.5
+    max-timeout-ms: 15000
+    health-interval-ms: 30000
+    health-check-enabled: ${STT_HEALTH_CHECK_ENABLED:true}
+  openai:
+    model: gpt-4o-mini-transcribe
+
+search:
+  admin-key: ${ADMIN_API_KEY:}
+  semantic-weight: 0.6
+  keyword-weight: 0.4
+  threshold: 0.45
 
 # 비공개 S3 사진은 DB 파일명을 그대로 키로 사용한다. 자격 증명은 AWS 기본 체인에서 읽는다.
 storage:
