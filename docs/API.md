@@ -1,4 +1,4 @@
-# SMAP 길찾기 API 명세
+# SMAP 길찾기·AI 검색 API 명세
 
 현재 컨트롤러·DTO·경로 정책·예외 처리 구현을 기준으로 작성한 문서다.
 
@@ -8,7 +8,7 @@
 |---|---|
 | 로컬 Base URL | `http://localhost:8080` — 포트 변경 시 해당 포트 사용 |
 | 인증 | 애플리케이션 로그인·토큰 불필요 |
-| 요청·응답 형식 | `application/json` |
+| 요청·응답 형식 | `application/json` (음성 검색만 `multipart/form-data`) |
 | Swagger UI | `/swagger-ui/index.html` |
 | OpenAPI JSON | `/v3/api-docs` |
 
@@ -321,7 +321,7 @@ GET /api/v1/places?keyword=도시공학과%20실습실
 }
 ```
 
-응답 항목은 위 Place 표와 같은 11개 필드다. 실제 노드가 존재하는 매핑만 반환하므로 arriveNodeId는 이 API에서 비어 있지 않다. 정렬은 이름, placeId 오름차순이다. 페이징은 적용하지 않는다. 현재 데이터 기준 전체 조회는 969개다.
+응답 항목은 위 Place 표와 같은 11개 필드다. 실제 노드가 존재하는 매핑만 반환하므로 arriveNodeId는 이 API에서 비어 있지 않다. 정렬은 이름, placeId 오름차순이다. 페이징은 적용하지 않는다. 현재 데이터 기준 전체 조회는 970개다.
 
 ### 헤더 정보 (Headers)
 
@@ -405,6 +405,8 @@ GET /api/v1/nodes
 4. POST /api/v1/routes에 두 ID와 option 전달
 5. 반환된 노드·장소·사진 URL과 통합 이동 안내 표시
 
+자연어·음성으로 찾을 때는 1·2 대신 아래 [AI 장소 검색 API](#ai-장소-검색-api)를 사용한다. 후보의 `nodeId`를 그대로 fromNodeId·toNodeId로 쓴다. NFC 태그 등으로 노드 ID를 이미 알고 있으면 출발지 검색 없이 그 값을 fromNodeId로 바로 사용한다.
+
 전체 사진 노드를 직접 선택하는 화면은 GET /api/v1/nodes의 nodeId를 사용한다. 프론트가 장소와 노드 매핑을 별도로 하드코딩할 필요는 없다.
 
 ## 캠퍼스 전체 둘러보기 API
@@ -468,7 +470,7 @@ GET /api/v1/campus-map
     ],
     "totalNodes": 328,
     "totalEdges": 918,
-    "totalPlaces": 969
+    "totalPlaces": 970
   }
 }
 ```
@@ -515,6 +517,222 @@ MapEdge 필드는 fromNodeId, toNodeId, moveType, description이다. 계단·엘
 | 500 | COMMON_500 | 기타 서버 오류 |
 
 오류 응답은 공통 형식이며 data는 null이다.
+
+## AI 장소 검색 API
+
+"북악관 102호", "프린트 하고 싶어", "나 지금 카페 앞이야"처럼 자연스러운 문장이나 녹음으로 출발지·목적지 후보를 찾는다. AI는 장소·노드 후보만 고르며 경로는 만들지 않는다. 후보의 `nodeId`를 경로 조회 API에 그대로 넘긴다.
+
+| 순서 | API | 설명 |
+|---|---|---|
+| 1 | `POST /api/v1/searches` (JSON) | 텍스트 검색 |
+| 1 | `POST /api/v1/searches` (multipart) | 음성 검색. 같은 경로이며 Content-Type으로 구분 |
+| 2 | `PUT /api/v1/searches/{searchId}/selection` | 사용자가 고른 후보 기록 |
+| 3 | `POST /api/v1/routes` | 후보의 nodeId로 경로 조회 |
+
+### 텍스트 검색
+
+```http
+POST /api/v1/searches
+Content-Type: application/json
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `target` | string | O | `ORIGIN`(지금 있는 곳, 출발지) 또는 `DESTINATION`(가고 싶은 곳, 목적지) |
+| `query` | string | O | 사용자 문장. 앞뒤 공백 제거 후 1~200자 |
+| `limit` | integer | X | 후보 최대 개수 1~10. 생략 시 5 |
+
+```json
+{
+  "target": "ORIGIN",
+  "query": "나 지금 카페 앞이야",
+  "limit": 5
+}
+```
+
+### 음성 검색
+
+```http
+POST /api/v1/searches
+Content-Type: multipart/form-data
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|---|---|---|---|
+| `target` | string | O | `ORIGIN` 또는 `DESTINATION` |
+| `audio` | file | O | 녹음 파일(m4a·wav·webm 등). 1MB 이하 |
+| `durationMs` | integer | X | 녹음 길이(ms). 15000 이하. STT 대기 시간 계산에 사용 |
+| `limit` | integer | X | 후보 최대 개수 1~10. 생략 시 5 |
+
+- 음성은 Oracle STT 서버(faster-whisper)로 먼저 글자로 바꾸고, 서버가 응답하지 않거나 실패하면 OpenAI `gpt-4o-mini-transcribe`로 대체한다.
+- 인식한 문장은 응답 `transcript`, 사용한 엔진은 `sttEngine`(`WHISPER` 또는 `OPENAI`)에 담긴다.
+- 이후 처리는 텍스트 검색과 같다. 보통 3~6초 걸린다.
+
+### 검색 응답
+
+HTTP `201 Created`, `Location: /api/v1/searches/{searchId}`. 후보가 없어도 오류가 아니며 `status`가 `NOT_FOUND`, `candidates`가 빈 배열이다.
+
+```json
+{
+  "success": true,
+  "code": "201",
+  "message": "검색 후보를 만들었습니다.",
+  "data": {
+    "searchId": 12,
+    "target": "ORIGIN",
+    "inputType": "TEXT",
+    "transcript": null,
+    "sttEngine": null,
+    "status": "CANDIDATES",
+    "message": "어디에 계신지 골라 주세요.",
+    "routeOption": null,
+    "candidates": [
+      {
+        "candidateId": "place:r-yudam-907",
+        "type": "PLACE",
+        "placeId": "r-yudam-907",
+        "nodeId": "s1013_105937",
+        "name": "로렐 카페 (907호)",
+        "displaySub": "유담관 9층 907호",
+        "building": "유담관",
+        "floorLabel": "9",
+        "kind": "facility",
+        "reason": "근처 시설: 카페",
+        "score": 0.93,
+        "matchedBy": "BOTH"
+      }
+    ]
+  }
+}
+```
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `searchId` | integer | 검색 ID. 후보 선택 API 경로에 사용 |
+| `target` | string | 요청한 검색 대상 |
+| `inputType` | string | `TEXT` 또는 `VOICE` |
+| `transcript` | string 또는 null | 음성 인식 결과. 텍스트 검색이면 null. "이렇게 들었어요" 표시용 |
+| `sttEngine` | string 또는 null | `WHISPER` 또는 `OPENAI`. 텍스트 검색이면 null |
+| `status` | string | `CANDIDATES` 또는 `NOT_FOUND` |
+| `message` | string | 화면에 그대로 보여 줄 안내 문구 |
+| `routeOption` | string 또는 null | 문장에서 찾은 경로 옵션. 목적지 검색에서만. 경로 조회 API의 option으로 전달 |
+| `candidates` | Candidate[] | 후보 목록. 점수 높은 순 |
+
+#### Candidate
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `candidateId` | string | `place:<placeId>` 또는 `node:<nodeId>`. 후보 선택 API에 그대로 보냄 |
+| `type` | string | `PLACE`(장소) 또는 `NODE`(사진 지점. 출발지 검색에서만) |
+| `placeId` | string 또는 null | 장소 ID. NODE면 null |
+| `nodeId` | string | **경로 조회 API의 fromNodeId·toNodeId로 사용할 노드 ID** |
+| `name` | string | 표시 이름 |
+| `displaySub` | string 또는 null | 보조 설명(건물·층·호수) |
+| `building` | string 또는 null | 건물명 |
+| `floorLabel` | string 또는 null | `1`, `B1`, `L` 등 층 표기 |
+| `kind` | string 또는 null | room, professor, facility, office, building |
+| `reason` | string 또는 null | 업무·주변 시설로 찾았을 때 그 이유. 출발지는 `근처 시설: `, 목적지는 `업무: `로 시작 |
+| `score` | number | 일치 점수 0~1 |
+| `matchedBy` | string | `KEYWORD`(글자 일치), `SEMANTIC`(의미 유사), `BOTH` |
+
+#### 문장 처리 규칙
+
+| 규칙 | 예 |
+|---|---|
+| 말끝 제거 | "북악관 7층 엘리베이터 앞이야" → "북악관 7층 엘리베이터 앞" |
+| 군더더기 제거 | "나 지금 카페 앞이야" → "카페 앞" |
+| 위치 단어 분리 | "카페 앞" → 핵심어 "카페"도 함께 검색 |
+| 층·호수 붙이기 | "지하 1 층" → "지하1층", "102 호" → "102호" |
+| 경로 옵션 추출 (목적지만) | "계단 말고·엘리베이터로·편하게" → `COMFORTABLE`, "실내로·지하로" → `INDOOR_UNDERGROUND_FIRST`, "제일 빠른·최단·빨리" → `SHORTEST` |
+
+- 출발지(`ORIGIN`)는 장소·사진 지점·업무 문서에서, 목적지(`DESTINATION`)는 장소·업무 문서에서 찾는다.
+- 업무("프린트", "동아리방" 등)로 찾으면 그 업무에 연결된 장소들이 후보가 된다. 출발지는 같은 노드 후보를 하나로 합친다.
+- 점수는 글자 유사도(pg_trgm)와 의미 유사도(OpenAI 임베딩)를 합친 값이며 0.45 미만은 제외한다. OpenAI 키가 없거나 임베딩 호출이 실패하면 글자 점수만으로 검색하며 검색 자체는 실패하지 않는다.
+
+### 후보 선택
+
+```http
+PUT /api/v1/searches/{searchId}/selection
+Content-Type: application/json
+```
+
+```json
+{
+  "candidateId": "place:r-yudam-907"
+}
+```
+
+HTTP `200 OK`, `data`는 null이다. 검색 품질 분석용 기록이며 경로 조회 전에 호출한다. 같은 검색에서 다시 고르면 마지막 선택으로 덮어쓴다.
+
+### 오류
+
+| HTTP | code | 발생 조건 |
+|---|---|---|
+| 400 | `COMMON_400_VALIDATION` | target 누락, limit 범위 밖, candidateId 공백 |
+| 400 | `COMMON_400_BODY_NOT_READABLE` | JSON 오류, 정의되지 않은 target |
+| 400 | `SEARCH_400_INVALID_QUERY` | query가 비었거나 200자 초과 |
+| 400 | `SEARCH_400_NOT_A_CANDIDATE` | 그 검색의 후보에 없는 candidateId |
+| 404 | `SEARCH_404_NOT_FOUND` | 없는 searchId |
+| 400 | `STT_400_INVALID_AUDIO` | audio 누락·빈 파일·읽을 수 없는 형식, durationMs가 0 이하이거나 15000 초과 |
+| 413 | `STT_413_AUDIO_TOO_LARGE` | audio 1MB 초과 |
+| 413 | `COMMON_413_FILE_TOO_LARGE` | 요청 전체가 10MB 초과. 서버 업로드 한도에서 먼저 막혀 STT 처리 전에 반환 |
+| 422 | `STT_422_EMPTY_TRANSCRIPT` | 말소리가 없거나 인식 결과가 빔 |
+| 503 | `STT_503_UNAVAILABLE` | Oracle STT와 OpenAI 대체가 모두 실패 |
+
+STT 오류 message는 사용자에게 그대로 보여 줄 수 있는 문장이다. 예: "잘 듣지 못했어요. 조금 더 크게 말해 주세요."
+
+### 프론트 AI 검색 흐름
+
+1. 출발지·목적지 입력칸에서 글자 입력 또는 녹음 → `POST /api/v1/searches` (`target` 구분)
+2. `status`가 `NOT_FOUND`면 `message`를 보여 주고 다시 입력받는다.
+3. 후보 목록에서 사용자가 고르면 `PUT /searches/{searchId}/selection`
+4. 출발·도착 후보의 `nodeId`와 목적지 응답의 `routeOption`으로 `POST /api/v1/routes`
+5. NFC 태그로 출발 노드를 이미 알면 출발지 검색은 생략한다.
+
+### 검색 문서 갱신 (관리자)
+
+```http
+POST /api/v1/admin/embedding-jobs?target=ALL&force=false
+X-Admin-Key: <ADMIN_API_KEY>
+```
+
+장소·노드·업무 데이터로 검색 문서(`search_documents`)를 다시 만들고, 내용이 바뀐 문서만 임베딩한다. **배포 후 처음 한 번은 반드시 실행**한다. 실행 전에는 문서가 없어 모든 검색이 `NOT_FOUND`다. 장소·업무 데이터를 바꾼 뒤에도 다시 실행한다. FE 연동 대상이 아니다.
+
+| 파라미터 | 설명 |
+|---|---|
+| `target` | `ALL`(기본), `SERVICE`, `PLACE`, `NODE` |
+| `force` | true면 바뀌지 않은 문서도 전부 다시 임베딩. 기본 false |
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": "요청이 성공했습니다.",
+  "data": {
+    "documentCount": 1326,
+    "serviceUpdated": 28,
+    "placeUpdated": 970,
+    "nodeUpdated": 328,
+    "model": "text-embedding-3-small (1024차원)",
+    "elapsedMs": 41250
+  }
+}
+```
+
+- `X-Admin-Key`가 없거나 다르면 401 `ADMIN_401_UNAUTHORIZED`. 서버에 `ADMIN_API_KEY`가 비어 있으면 항상 401이다.
+- OpenAI 키가 없으면 문서만 만들고 임베딩은 건너뛴다(`model`이 null). 이 경우 검색은 글자 점수로만 동작한다.
+
+### 관련 설정
+
+| 환경 변수 | 설명 |
+|---|---|
+| `OPENAI_API_KEY` | 질문·문서 임베딩, STT 대체에 사용. 없으면 글자 검색만 |
+| `STT_BASE_URL` | Oracle STT 서버 주소. 기본 `https://stt.eunhasu03.cloud` |
+| `STT_TOKEN` | Oracle STT 서버 토큰(`X-STT-Token`). 없으면 바로 OpenAI로 대체 |
+| `STT_HEALTH_CHECK_ENABLED` | Oracle STT 30초 주기 상태 확인. 기본 true |
+| `ADMIN_API_KEY` | 검색 문서 갱신 API 키 |
+
+DB는 `vector`(pgvector)·`pg_trgm` 확장이 필요하다. `db/init/07-ai-search-schema.sql`이 확장과 `services`, `service_places`, `search_documents`, `search_log` 테이블을 만들고, `09-services-seed.sql`이 업무 28개·업무-장소 연결 85개를 넣는다.
 
 ## 전체 목록 Redis 캐시
 
