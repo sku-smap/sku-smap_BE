@@ -6,6 +6,12 @@ spring:
           stt:
             connect-timeout: 2000
             read-timeout: 3000
+          openaiEmbedding:
+            connect-timeout: 2000
+            read-timeout: 10000
+          openaiTranscription:
+            connect-timeout: 2000
+            read-timeout: 15000
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:default}
 

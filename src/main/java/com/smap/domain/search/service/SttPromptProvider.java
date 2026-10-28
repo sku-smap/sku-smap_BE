@@ -33,7 +33,7 @@ public class SttPromptProvider {
 
     private String build() {
         String joined = placeRepository.findAll().stream()
-                .filter(place -> PROMPT_KINDS.contains(place.getKind()))
+                .filter(place -> place.getKind() != null && PROMPT_KINDS.contains(place.getKind()))
                 .flatMap(place -> Stream.of(place.getBuilding(), cleanName(place)))
                 .filter(Objects::nonNull)
                 .map(String::strip)

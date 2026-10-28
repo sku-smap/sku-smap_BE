@@ -675,6 +675,7 @@ HTTP `200 OK`, `data`는 null이다. 검색 품질 분석용 기록이며 경로
 | 404 | `SEARCH_404_NOT_FOUND` | 없는 searchId |
 | 400 | `STT_400_INVALID_AUDIO` | audio 누락·빈 파일·읽을 수 없는 형식, durationMs가 0 이하이거나 15000 초과 |
 | 413 | `STT_413_AUDIO_TOO_LARGE` | audio 1MB 초과 |
+| 413 | `COMMON_413_FILE_TOO_LARGE` | 요청 전체가 10MB 초과. 서버 업로드 한도에서 먼저 막혀 STT 처리 전에 반환 |
 | 422 | `STT_422_EMPTY_TRANSCRIPT` | 말소리가 없거나 인식 결과가 빔 |
 | 503 | `STT_503_UNAVAILABLE` | Oracle STT와 OpenAI 대체가 모두 실패 |
 

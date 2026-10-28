@@ -56,7 +56,7 @@ public class SttService {
                 } else {
                     log.warn("Oracle STT 실패, OpenAI로 대체: status={} {}", e.status(), e.getMessage());
                 }
-                if (e.status() < 0) {
+                if (e.status() < 0 && sttProperties.getOracle().isHealthCheckEnabled()) {
                     oracleUp.set(false);
                 }
             }

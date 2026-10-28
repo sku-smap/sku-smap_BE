@@ -102,7 +102,7 @@ public class SearchDocumentBuilder {
         String content = join(". ",
                 place.getName(),
                 location,
-                "종류: " + KIND_NAMES.getOrDefault(place.getKind(), place.getKind()),
+                place.getKind() == null ? null : "종류: " + KIND_NAMES.getOrDefault(place.getKind(), place.getKind()),
                 place.getAliases() == null ? null : "다른 이름: " + place.getAliases().replace(" | ", ", "),
                 services.isEmpty() ? null : "할 수 있는 일: " + String.join(", ", services));
         String buildingRoom = place.getRoomNo() == null || place.getRoomNo().isBlank() || place.getBuilding() == null
