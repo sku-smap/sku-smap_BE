@@ -1,0 +1,3 @@
+INSERT INTO places (place_id, name, kind, building, floor_label, room_no, arrive_node_id, arrive_node_title, door_photo, mapping_basis, aliases, sub) VALUES
+    ('f-chungwoon-atm', '신한은행 ATM', 'facility', '청운관', 'L', NULL, 'CWL_BACK', '청운관 L층 뒷길', NULL, 'FIELD', 'ATM | 현금인출기 | 신한 ATM | 신한은행 | 청운관 ATM', '청운관 L층 뒷길')
+ON CONFLICT (place_id) DO UPDATE SET name = EXCLUDED.name, kind = EXCLUDED.kind, building = EXCLUDED.building, floor_label = EXCLUDED.floor_label, room_no = EXCLUDED.room_no, arrive_node_id = EXCLUDED.arrive_node_id, arrive_node_title = EXCLUDED.arrive_node_title, door_photo = EXCLUDED.door_photo, mapping_basis = EXCLUDED.mapping_basis, aliases = EXCLUDED.aliases, sub = EXCLUDED.sub;
