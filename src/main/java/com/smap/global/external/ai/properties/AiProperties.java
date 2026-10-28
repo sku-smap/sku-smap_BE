@@ -15,4 +15,10 @@ public class AiProperties {
     private String baseUrl = "https://api.openai.com";
     private String model = "gpt-4o-mini"; //추후 수정 필요
     private int maxTokens = 2048;
+    private String embeddingModel = "text-embedding-3-small";
+    private int embeddingDimensions = 1024;
+
+    public boolean hasApiKey() {
+        return apiKey != null && !apiKey.isBlank();
+    }
 }
