@@ -1,7 +1,18 @@
 package com.smap.domain.search.service;
 
+import com.smap.domain.graph.repository.EdgeRepository;
+import com.smap.domain.graph.repository.NodeRepository;
+import com.smap.domain.place.entity.Place;
+import com.smap.domain.place.repository.PlaceRepository;
+import com.smap.domain.search.model.SearchDocument;
+import com.smap.domain.search.repository.SearchDocumentRepository;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class SearchDocumentBuilderTests {
 
@@ -51,5 +62,27 @@ class SearchDocumentBuilderTests {
         assertEquals("L층", SearchDocumentBuilder.floorText("L"));
         assertEquals("7층", SearchDocumentBuilder.floorText("7"));
         assertNull(SearchDocumentBuilder.floorText(null));
+    }
+
+    @Test
+    void placeWithoutKindStillBuildsDocument() {
+        Place place = mock(Place.class);
+        when(place.getPlaceId()).thenReturn("f-test");
+        when(place.getName()).thenReturn("신한은행 ATM");
+        when(place.getBuilding()).thenReturn("청운관");
+        when(place.getFloorLabel()).thenReturn("L");
+        when(place.getArriveNodeId()).thenReturn("CWL_BACK");
+        PlaceRepository placeRepository = mock(PlaceRepository.class);
+        when(placeRepository.findAll()).thenReturn(List.of(place));
+        SearchDocumentRepository searchDocumentRepository = mock(SearchDocumentRepository.class);
+        when(searchDocumentRepository.findServiceNamesByPlace()).thenReturn(Map.of());
+        SearchDocumentBuilder builder = new SearchDocumentBuilder(placeRepository, mock(NodeRepository.class),
+                mock(EdgeRepository.class), searchDocumentRepository);
+
+        List<SearchDocument> documents = builder.buildPlaces();
+
+        assertEquals(1, documents.size());
+        assertFalse(documents.get(0).content().contains("종류"));
+        assertTrue(documents.get(0).content().contains("신한은행 ATM"));
     }
 }
