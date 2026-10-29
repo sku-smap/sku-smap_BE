@@ -1,8 +1,39 @@
+> 층 표기 변경: Flyway V1 적용 후 노드는 1층, L층, B1층 등의 층 단위와 지상, 지하, 연결계단을 반환한다. 상세 내용은 [층 표기와 마이그레이션](FLOOR-LABELS.md)을 참고한다.
+
 # SMAP 길찾기·AI 검색 API 명세
+
+장소의 `aliases`는 문자열 배열, `kind`는 소문자 enum 또는 null이다.
+상세 구분 규칙·허용값·필수값·sub 정책은 [장소 필드 계약](PLACE-FIELDS.md)을 참고한다.
+
+건물 정보는 식별용 `buildingId`와 표시용 `building`을 함께 제공한다.
+고정 ID 대응표와 야외의 층별 분류 기준은 [건물 ID 계약](BUILDING-IDS.md)을 참고한다.
+`GET /api/v1/buildings`로 실제 등록된 buildingId·building 목록을 조회할 수 있다.
+요청 파라미터·인증은 없으며, 공통 성공 응답 data는 두 필드로 구성된 배열이다.
+노드·장소의 중복 쌍은 제거하고 ID 순으로 정렬하며, 데이터가 없으면 빈 배열을 반환한다.
+
+노드 사진은 모두 360 파노라마이며 `/nodes`의 `data[]`, `/campus-map` 및
+`/routes`의 `data.nodes[]`에 `photoType: "PANORAMA"`를 제공한다.
+현재 일반 사진 노드는 없고, 허용되는 photoType 값은 PANORAMA 하나이다.
+장소 사진은 응답에서 제공하지 않는다. 기존 doorPhoto 필드도 제외한다.
+URL 제공 위치·접근·만료·갱신 정책은 [사진 사용 계약](S3-PHOTOS.md)을 참고한다.
 
 현재 컨트롤러·DTO·경로 정책·예외 처리 구현을 기준으로 작성한 문서다.
 
 ## 공통 정보
+
+Swagger에서 `required`는 JSON 필드가 존재해야 한다는 뜻이며, `nullable`은 그 값이 null일 수 있는지를 뜻한다.
+응답 DTO 필드는 null 값이어도 키를 포함하므로 required로 표시한다.
+예를 들어 sub·kind·imageUrl은 필수 응답 키이면서 null 허용이며, aliases는 null 대신 빈 배열을 반환한다.
+공통 응답 data도 키는 항상 존재하지만 오류 응답이나 반환값 없는 성공 응답에서는 null이다.
+요청의 필수 여부는 별도로 표시한다. 경로의 fromNodeId·toNodeId는 필수이며,
+option은 생략·null을 허용하고 OUTDOOR_FIRST를 사용한다.
+
+모든 `/api/v1` 도메인 API는 응답 `Content-Type: application/json`을 명시한다.
+음성 검색의 요청 Content-Type은 기존대로 multipart/form-data이고 응답은 application/json이다.
+
+CORS 기본 허용 Origin은 `https://sku-smap.vercel.app`, `http://localhost:3000`, `http://localhost:5173`이다.
+운영 환경에 CORS_ALLOWED_ORIGINS를 지정하면 기본 목록 전체를 대체하므로 운영 프론트 주소를 포함해야 한다.
+Origin 설정에는 경로·마지막 슬래시를 넣지 않으며, 여러 주소는 쉼표로 구분한다.
 
 | 항목 | 값 |
 |---|---|
@@ -73,9 +104,10 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
       {
         "nodeId": "field",
         "building": "야외",
-        "floorLabel": null,
+        "floorLabel": "지상",
         "title": "스콘스퀘어",
         "originalFilename": "스콘스퀘어.jpg",
+        "photoType": "PANORAMA",
         "imageUrl": "<스콘스퀘어 사진의 Presigned URL>",
         "description": "폭풍의언덕 스콘스퀘어 입구로 이동합니다.",
         "places": []
@@ -83,9 +115,10 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
       {
         "nodeId": "hill_field_entrance",
         "building": "야외",
-        "floorLabel": null,
+        "floorLabel": "지상",
         "title": "폭풍의언덕 운동장 입구",
         "originalFilename": "폭풍의언덕_운동장_입구.jpg",
+        "photoType": "PANORAMA",
         "imageUrl": "<입구 사진의 Presigned URL>",
         "description": null,
         "places": []
@@ -124,7 +157,7 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
 |---|---|---|
 | `nodeId` | string | 노드 ID |
 | `building` | string | 건물명 또는 야외 구분 |
-| `floorLabel` | string 또는 null | `1`, `B1`, `L` 등 원본 층 표기 |
+| `floorLabel` | string 또는 null | `1층`, `B1층`, `L층` 또는 `지상`, `지하`, `연결계단` |
 | `title` | string | 원본 파일명에서 확장자를 제거하고 밑줄을 공백으로 바꾼 이름 |
 | `originalFilename` | string | 원본 사진 파일명. 현재 S3 객체 키와 동일 |
 | `imageUrl` | string 또는 null | GET 전용 임시 URL. 사진 기능 비활성화 시 null |
@@ -139,14 +172,13 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
 |---|---|---|
 | `placeId` | string | 장소 ID |
 | `name` | string | 장소 이름 |
-| `kind` | string 또는 null | room, office, facility 등 원본 분류 |
+| `kind` | enum 또는 null | room, professor, office, facility, building |
 | `building` | string 또는 null | 건물명 |
 | `floorLabel` | string 또는 null | 장소 층 표기 |
 | `roomNo` | string 또는 null | 호실 번호 |
 | `arriveNodeId` | string 또는 null | 도착 노드 ID |
 | `arriveNodeTitle` | string 또는 null | 도착 노드의 원본 표시 이름 |
-| `doorPhoto` | string 또는 null | 출입문 사진 경로. 현재 URL 발급 대상이 아님 |
-| `aliases` | string 또는 null | 원본 별명 문자열. 배열이 아님 |
+| `aliases` | string[] | 별명 배열. 미지정 시 빈 배열. 공백·빈 항목·중복 제거 |
 | `sub` | string 또는 null | 부가 설명 |
 
 장소 항목 예시:
@@ -157,12 +189,11 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
   "name": "도시공학과 실습실 (202호)",
   "kind": "room",
   "building": "은주1관",
-  "floorLabel": "2",
+  "floorLabel": "2층",
   "roomNo": "202",
   "arriveNodeId": "EJ1_02_E",
   "arriveNodeTitle": "은주1관 2층 엘리베이터 앞",
-  "doorPhoto": "door/IMG_5807.jpg",
-  "aliases": "도시공학과 실습실 | 202호 | 은주1관 202",
+  "aliases": ["도시공학과 실습실", "202호", "은주1관 202"],
   "sub": "은주1관 2층 202호"
 }
 ```
@@ -309,12 +340,11 @@ GET /api/v1/places?keyword=도시공학과%20실습실
       "name": "도시공학과 실습실 (202호)",
       "kind": "room",
       "building": "은주1관",
-      "floorLabel": "2",
+      "floorLabel": "2층",
       "roomNo": "202",
       "arriveNodeId": "EJ1_02_E",
       "arriveNodeTitle": "은주1관 2층 엘리베이터 앞",
-      "doorPhoto": "door/IMG_5807.jpg",
-      "aliases": "도시공학과 실습실 | 202호 | 은주1관 202",
+      "aliases": ["도시공학과 실습실", "202호", "은주1관 202"],
       "sub": "은주1관 2층 202호"
     }
   ]
@@ -371,7 +401,7 @@ GET /api/v1/nodes
     {
       "nodeId": "EJ1_02_E",
       "building": "은주1관",
-      "floorLabel": "2",
+      "floorLabel": "2층",
       "title": "은주1관 2층 엘베앞",
       "originalFilename": "은주1관_2층_엘베앞.jpg"
     }
@@ -383,7 +413,7 @@ GET /api/v1/nodes
 |---|---|---|
 | nodeId | String | 출발·도착 선택에 사용할 노드 ID |
 | building | String | 건물명 또는 야외 |
-| floorLabel | String 또는 null | 원본 층 표기 |
+| floorLabel | String 또는 null | `1층`, `L층`, `B1층`, `지상`, `지하`, `연결계단` |
 | title | String | 파일명 기반 표시 이름 |
 | originalFilename | String | 원본 사진 파일명 |
 
@@ -439,9 +469,10 @@ GET /api/v1/campus-map
       {
         "nodeId": "EJ1_02_E",
         "building": "은주1관",
-        "floorLabel": "2",
+        "floorLabel": "2층",
         "title": "은주1관 2층 엘베앞",
         "originalFilename": "은주1관_2층_엘베앞.jpg",
+        "photoType": "PANORAMA",
         "imageUrl": "<은주1관 2층 사진의 Presigned URL>",
         "places": [
           {
@@ -449,12 +480,11 @@ GET /api/v1/campus-map
             "name": "도시공학과 실습실 (202호)",
             "kind": "room",
             "building": "은주1관",
-            "floorLabel": "2",
+            "floorLabel": "2층",
             "roomNo": "202",
             "arriveNodeId": "EJ1_02_E",
             "arriveNodeTitle": "은주1관 2층 엘리베이터 앞",
-            "doorPhoto": "door/IMG_5807.jpg",
-            "aliases": "도시공학과 실습실 | 202호 | 은주1관 202",
+            "aliases": ["도시공학과 실습실", "202호", "은주1관 202"],
             "sub": "은주1관 2층 202호"
           }
         ]
@@ -483,7 +513,7 @@ GET /api/v1/campus-map
 | data.totalEdges | Integer | 반환한 전체 방향 간선 개수 |
 | data.totalPlaces | Integer | nodes[].places에 포함된 장소 항목 수 |
 
-MapNode 필드는 nodeId, building, floorLabel, title, originalFilename, imageUrl, places이다. places는 장소 검색 API와 같은 11개 필드이며 이름·ID 순서로 정렬한다. 연결된 장소가 없으면 빈 배열이다. 이웃 선택 전에는 이동 안내를 하나로 결정할 수 없으므로 노드 자체에는 description이 없다.
+MapNode 필드는 nodeId, building, floorLabel, title, originalFilename, imageUrl, places, photoType, buildingId이다. places는 장소 검색 API와 같은 11개 필드이며 이름·ID 순서로 정렬한다. 연결된 장소가 없으면 빈 배열이다. 이웃 선택 전에는 이동 안내를 하나로 결정할 수 없으므로 노드 자체에는 description이 없다.
 
 MapEdge 필드는 fromNodeId, toNodeId, moveType, description이다. 계단·엘리베이터 등 같은 노드 쌍의 다른 이동수단은 별도 간선으로 유지한다. 원본 이동 유형이 비어 있으면 moveType은 null이다. 간선별 description을 그대로 제공하며 길찾기 API와 달리 연속 엘리베이터를 합치지 않는다. 존재하지 않는 역방향 연결을 생성하지 않는다. 응답에서 참조하는 모든 노드는 nodes에 포함된다.
 
@@ -595,7 +625,7 @@ HTTP `201 Created`, `Location: /api/v1/searches/{searchId}`. 후보가 없어도
         "name": "로렐 카페 (907호)",
         "displaySub": "유담관 9층 907호",
         "building": "유담관",
-        "floorLabel": "9",
+        "floorLabel": "9층",
         "kind": "facility",
         "reason": "근처 시설: 카페",
         "score": 0.93,
@@ -629,8 +659,8 @@ HTTP `201 Created`, `Location: /api/v1/searches/{searchId}`. 후보가 없어도
 | `name` | string | 표시 이름 |
 | `displaySub` | string 또는 null | 보조 설명(건물·층·호수) |
 | `building` | string 또는 null | 건물명 |
-| `floorLabel` | string 또는 null | `1`, `B1`, `L` 등 층 표기 |
-| `kind` | string 또는 null | room, professor, facility, office, building |
+| `floorLabel` | string 또는 null | `1층`, `B1층`, `L층` 등 층 표기 |
+| `kind` | enum 또는 null | room, professor, facility, office, building |
 | `reason` | string 또는 null | 업무·주변 시설로 찾았을 때 그 이유. 출발지는 `근처 시설: `, 목적지는 `업무: `로 시작 |
 | `score` | number | 일치 점수 0~1 |
 | `matchedBy` | string | `KEYWORD`(글자 일치), `SEMANTIC`(의미 유사), `BOTH` |
@@ -740,9 +770,9 @@ DB는 `vector`(pgvector)·`pg_trgm` 확장이 필요하다. `db/init/07-ai-searc
 
 | API | Redis 키 | 재조회 동작 |
 |---|---|---|
-| GET /api/v1/campus-map | smap:campus:v1:map | 전체 지도 데이터를 재사용하고 사진 URL만 새로 발급 |
-| GET /api/v1/nodes | smap:campus:v1:nodes | 전체 노드 DTO 목록을 재사용 |
-| GET /api/v1/places | smap:campus:v1:places | 검색어가 없거나 공백일 때 전체 연결 장소 목록을 재사용 |
+| GET /api/v1/campus-map | smap:campus:v5:map | 전체 지도 데이터를 재사용하고 사진 URL만 새로 발급 |
+| GET /api/v1/nodes | smap:campus:v4:nodes | 전체 노드 DTO 목록을 재사용 |
+| GET /api/v1/places | smap:campus:v5:places | 검색어가 없거나 공백일 때 전체 연결 장소 목록을 재사용 |
 
 - 기본 TTL은 300초다. 최초 요청·만료 후 요청은 DB에서 생성하며, 이후 요청은 만료 전까지 Redis에서 조회한다.
 - keyword가 있는 장소 검색과 POST /api/v1/routes는 이번 캐시 대상이 아니다.
@@ -766,5 +796,5 @@ REDIS_PORT=6380
 로컬 SMAP 캐시만 즉시 비우기. 다른 프로젝트의 Redis와 다른 키는 삭제하지 않는다. 비밀번호를 설정했다면 아래 redis-cli 뒤에 `--askpass`를 추가하여 프롬프트에 입력한다.
 
 ```powershell
-docker compose --env-file .env -f docker-compose-dev.yaml exec redis redis-cli DEL smap:campus:v1:map smap:campus:v1:nodes smap:campus:v1:places
+docker compose --env-file .env -f docker-compose-dev.yaml exec redis redis-cli DEL smap:campus:v5:map smap:campus:v4:nodes smap:campus:v5:places
 ```
