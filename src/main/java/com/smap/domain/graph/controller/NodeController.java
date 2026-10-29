@@ -22,7 +22,7 @@ public class NodeController {
 
     /** 반환한 nodeId를 출발·도착 ID로 선택할 수 있다. */
     @GetMapping
-    @Operation(summary = "전체 노드 조회", description = "노드 ID 오름차순으로 전체 촬영 지점을 반환합니다. 사진 URL은 길찾기 API에서 발급합니다.")
+    @Operation(summary = "전체 노드 조회", description = "노드 ID 오름차순으로 촬영 지점과 outgoingEdges 이동 선택지·각도를 반환합니다. 사진 URL은 캠퍼스 맵·길찾기 API에서 발급합니다.")
     public ResponseEntity<ApiResponse<List<NodeResponseDTO>>> findAll() {
         return ResponseEntity.ok(ApiResponse.success(nodeService.findAll()));
     }

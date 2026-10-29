@@ -41,7 +41,11 @@ public record GraphSnapshot(Map<String, Point> nodes, Map<String, List<Segment>>
     }
 
     /** CSV의 양 끝 노드·이동 유형·안내 문구만 사용하며 시간은 포함하지 않는다. */
-    public record Segment(String fromNodeId, String toNodeId, MoveType moveType, String description) {
+    public record Segment(String fromNodeId, String toNodeId, MoveType moveType, String description, Double arrowYawDeg) {
+        /** 각도 미지정 간선은 0도로 추정하지 않고 null로 유지한다. */
+        public Segment(String fromNodeId, String toNodeId, MoveType moveType, String description) {
+            this(fromNodeId, toNodeId, moveType, description, null);
+        }
         /** 원본 이동 유형의 빈 값은 허용하며 양 끝 노드만 필수로 검사한다. */
         public Segment {
             Objects.requireNonNull(fromNodeId);

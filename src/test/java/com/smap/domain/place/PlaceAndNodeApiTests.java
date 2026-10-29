@@ -192,6 +192,36 @@ class PlaceAndNodeApiTests {
                 id, name, building, room, aliases, node);
     }
 
+    /** 0도는 유효한 값이며 미지정 각도와 방향·복수 이동 유형을 구분한다. */
+    @Test
+    void arrowAnglesAreReturnedByNodesMapAndRoutes() throws Exception {
+        for (String type : new String[]{"WALK", "ELEVATOR"}) {
+            jdbc.update("INSERT INTO edges(from_node_id,to_node_id,move_type,arrow_yaw_deg) VALUES (?,?,?,?)",
+                    "search-node-a", "search-node-b", type, 0.0);
+        }
+        jdbc.update("INSERT INTO edges(from_node_id,to_node_id,move_type) VALUES (?,?,?)",
+                "search-node-b", "search-node-a", "WALK");
+        mvc.perform(get("/api/v1/nodes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].outgoingEdges", hasSize(2)))
+                .andExpect(jsonPath("$.data[0].outgoingEdges[0].fromNodeId").value("search-node-a"))
+                .andExpect(jsonPath("$.data[0].outgoingEdges[0].toNodeId").value("search-node-b"))
+                .andExpect(jsonPath("$.data[0].outgoingEdges[0].arrowYawDeg").value(0.0))
+                .andExpect(jsonPath("$.data[1].outgoingEdges[0]", org.hamcrest.Matchers.hasKey("arrowYawDeg")))
+                .andExpect(jsonPath("$.data[1].outgoingEdges[0].arrowYawDeg").isEmpty());
+        mvc.perform(get("/api/v1/campus-map"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.edges", hasSize(3)))
+                .andExpect(jsonPath("$.data.edges[0].arrowYawDeg").value(0.0))
+                .andExpect(jsonPath("$.data.edges[2]", org.hamcrest.Matchers.hasKey("arrowYawDeg")))
+                .andExpect(jsonPath("$.data.edges[2].arrowYawDeg").isEmpty());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/routes")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"fromNodeId\":\"search-node-a\",\"toNodeId\":\"search-node-b\",\"option\":\"SHORTEST\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.segments[0].arrowYawDeg").value(0.0));
+    }
+
     /** 필드 존재 여부와 값의 null 허용 여부는 별개의 계약이다. */
     @Test
     void swaggerDistinguishesRequiredFieldsAndNullableValues() throws Exception {

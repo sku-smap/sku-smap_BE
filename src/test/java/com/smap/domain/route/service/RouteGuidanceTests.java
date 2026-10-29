@@ -19,10 +19,11 @@ class RouteGuidanceTests {
                 new Point("s1013_102615", "유담관", "9", "", "9.jpg"),
                 new Point("s1013_105513", "유담관", "10", "", "10.jpg"),
                 new Point("s1013_105549", "유담관", "10", "", "walk.jpg")),
-                List.of(new Segment("s1013_103540", "s1013_102615", MoveType.ELEVATOR, "9층으로 이동합니다."),
+                List.of(new Segment("s1013_103540", "s1013_102615", MoveType.ELEVATOR, "9층으로 이동합니다.", 123.5),
                         new Segment("s1013_102615", "s1013_105513", MoveType.ELEVATOR, "10층으로 이동합니다."),
                         new Segment("s1013_105513", "s1013_105549", MoveType.WALK, "복도로 이동합니다.")));
         var response = RouteResponseDTO.from(route);
+        assertEquals(123.5, response.segments().get(0).arrowYawDeg());
         assertEquals(2, response.segments().size());
         var elevator = response.segments().get(0);
         assertEquals("s1013_103540", elevator.fromNodeId());
