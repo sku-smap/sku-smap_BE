@@ -14,15 +14,15 @@ import lombok.NoArgsConstructor;
 public class SearchRequestDTO {
 
     @NotNull
-    @Schema(description = "찾는 대상. ORIGIN=지금 있는 곳(출발지), DESTINATION=가고 싶은 곳(목적지)", example = "ORIGIN")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false, description = "찾는 대상. ORIGIN=지금 있는 곳(출발지), DESTINATION=가고 싶은 곳(목적지)", example = "ORIGIN")
     private SearchTarget target;
 
-    @Schema(description = "사용자가 입력한 문장 (1~200자)", example = "나 지금 카페 앞이야")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false, description = "사용자가 입력한 문장 (1~200자)", example = "나 지금 카페 앞이야")
     private String query;
 
     @Min(1)
     @Max(10)
-    @Schema(description = "받을 후보 최대 개수 (1~10, 생략 시 5)", example = "5")
+    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true, description = "받을 후보 최대 개수 (1~10, 생략 시 5)", example = "5")
     private Integer limit;
 
     public int limitOrDefault() {

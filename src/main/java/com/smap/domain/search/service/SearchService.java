@@ -17,6 +17,7 @@ import com.smap.domain.search.model.ParsedQuery;
 import com.smap.domain.search.model.SearchStatus;
 import com.smap.domain.search.model.SearchTarget;
 import com.smap.domain.search.model.ServicePlace;
+import com.smap.domain.place.entity.PlaceKind;
 import com.smap.domain.search.repository.SearchDocumentRepository;
 import com.smap.domain.search.repository.SearchLogRepository;
 import com.smap.global.common.exception.GeneralException;
@@ -127,8 +128,9 @@ public class SearchService {
                             .name(place.name())
                             .displaySub(place.displaySub())
                             .building(place.building())
+                            .buildingId(place.buildingId())
                             .floorLabel(place.floorLabel())
-                            .kind(place.kind())
+                            .kind(PlaceKind.fromValue(place.kind()))
                             .reason((target == SearchTarget.ORIGIN ? "근처 시설: " : "업무: ") + place.serviceName())
                             .score(score)
                             .matchedBy(matchedBy)
@@ -144,8 +146,9 @@ public class SearchService {
                         .name(hit.displayName())
                         .displaySub(hit.displaySub())
                         .building(hit.building())
+                        .buildingId(hit.buildingId())
                         .floorLabel(hit.floorLabel())
-                        .kind(hit.kind())
+                        .kind(PlaceKind.fromValue(hit.kind()))
                         .reason(isPlace ? null : "사진 지점")
                         .score(score)
                         .matchedBy(matchedBy)

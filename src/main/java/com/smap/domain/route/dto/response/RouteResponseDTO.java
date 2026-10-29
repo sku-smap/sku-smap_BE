@@ -1,15 +1,24 @@
 package com.smap.domain.route.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import com.smap.domain.graph.entity.MoveType;
+import com.smap.domain.graph.entity.PhotoType;
 import com.smap.domain.route.service.RouteResult;
 import com.smap.domain.route.service.RouteGuidance;
 import java.util.List;
 import java.util.stream.IntStream;
 import com.smap.domain.place.entity.Place;
+import com.smap.domain.place.entity.PlaceKind;
+import com.smap.domain.place.dto.response.PlaceAliases;
 import java.util.function.Function;
 
 /** 순서대로 정렬된 사진 지점·이동 구간·이동 횟수만 반환하며 시간은 반환하지 않는다. */
-public record RouteResponseDTO(List<NodeDTO> nodes, List<SegmentDTO> segments, int totalSteps) {
+public record RouteResponseDTO(
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) List<NodeDTO> nodes,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) List<SegmentDTO> segments,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) int totalSteps
+) {
     /** DB에 저장된 안내 문구를 포함해 내부 경로 결과를 API 응답으로 변환한다. */
     public static RouteResponseDTO from(RouteResult result) {
         return from(result, filename -> null);
@@ -27,7 +36,8 @@ public record RouteResponseDTO(List<NodeDTO> nodes, List<SegmentDTO> segments, i
                     var places = result.placesByNode().getOrDefault(node.nodeId(), List.of()).stream()
                             .map(PlaceDTO::from).toList();
                     return new NodeDTO(node.nodeId(), node.building(), node.floorLabel(),
-                            node.title(), node.originalFilename(), imageUrls.apply(node.originalFilename()), description, places);
+                            node.title(), node.originalFilename(), imageUrls.apply(node.originalFilename()), description, places,
+                            PhotoType.PANORAMA, node.buildingId());
                 }).toList(),
                 RouteGuidance.segments(result).stream().map(segment -> new SegmentDTO(
                         segment.fromNodeId(), segment.toNodeId(), segment.moveType(),
@@ -36,23 +46,47 @@ public record RouteResponseDTO(List<NodeDTO> nodes, List<SegmentDTO> segments, i
     }
 
     /** 경로상의 촬영 지점과 원본 사진 파일명이다. */
-    public record NodeDTO(String nodeId, String building, String floorLabel,
-                          String title, String originalFilename, String imageUrl, String description,
-                          List<PlaceDTO> places) {}
+    public record NodeDTO(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String nodeId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String building,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String floorLabel,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String title,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String originalFilename,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String imageUrl,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String description,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) List<PlaceDTO> places,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) PhotoType photoType,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String buildingId
+    ) {}
 
     /** 해당 촬영 지점에 도착하도록 매핑된 장소 정보이다. */
-    public record PlaceDTO(String placeId, String name, String kind, String building,
-                           String floorLabel, String roomNo, String arriveNodeId,
-                           String arriveNodeTitle, String doorPhoto, String aliases, String sub) {
+    public record PlaceDTO(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String placeId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String name,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) PlaceKind kind,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String building,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String floorLabel,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String roomNo,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String arriveNodeId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String arriveNodeTitle,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) List<String> aliases,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String sub,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String buildingId
+    ) {
         /** DB의 장소 정보를 사용자에게 필요한 응답 필드로 변환한다. */
         public static PlaceDTO from(Place place) {
-            return new PlaceDTO(place.getPlaceId(), place.getName(), place.getKind(),
+            return new PlaceDTO(place.getPlaceId(), place.getName(), PlaceKind.fromValue(place.getKind()),
                     place.getBuilding(), place.getFloorLabel(), place.getRoomNo(),
-                    place.getArriveNodeId(), place.getArriveNodeTitle(), place.getDoorPhoto(),
-                    place.getAliases(), place.getSub());
+                    place.getArriveNodeId(), place.getArriveNodeTitle(),
+                    PlaceAliases.parse(place.getAliases()), place.getSub(), place.getBuildingId());
         }
     }
 
     /** 이동 유형이 비어 있는 원본 행은 NULL로 전달하고 임의의 이동수단을 생성하지 않는다. */
-    public record SegmentDTO(String fromNodeId, String toNodeId, MoveType moveType, String description) {}
+    public record SegmentDTO(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String fromNodeId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String toNodeId,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) MoveType moveType,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String description
+    ) {}
 }

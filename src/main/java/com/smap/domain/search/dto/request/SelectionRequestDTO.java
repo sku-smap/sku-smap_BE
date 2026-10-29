@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 public class SelectionRequestDTO {
 
     @NotBlank
-    @Schema(description = "검색 응답 candidates에서 고른 후보의 candidateId", example = "place:r-yudam-907")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false, description = "검색 응답 candidates에서 고른 후보의 candidateId", example = "place:r-yudam-907")
     private String candidateId;
 }

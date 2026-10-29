@@ -1,5 +1,7 @@
 package com.smap.domain.place.controller;
 
+import org.springframework.http.MediaType;
+
 import com.smap.domain.place.dto.response.PlaceResponseDTO;
 import com.smap.domain.place.service.PlaceService;
 import com.smap.global.common.response.ApiResponse;
@@ -12,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 /** 출발·도착 장소 선택에 사용할 검색 API이다. */
 @RestController
-@RequestMapping("/api/v1/places")
+@RequestMapping(value = "/api/v1/places", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class PlaceController {
     private final PlaceService placeService;

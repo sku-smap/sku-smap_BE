@@ -44,7 +44,8 @@ class SearchControllerTests {
     private SearchResponseDTO response() {
         CandidateDTO candidate = CandidateDTO.builder()
                 .candidateId("place:cvs").type(CandidateType.PLACE).placeId("cvs").nodeId("bukak_b1")
-                .name("편의점").score(0.9).matchedBy(MatchedBy.BOTH).build();
+                .name("편의점").kind(com.smap.domain.place.entity.PlaceKind.FACILITY)
+                .score(0.9).matchedBy(MatchedBy.BOTH).build();
         return SearchResponseDTO.builder()
                 .searchId(1L).target(SearchTarget.ORIGIN).inputType(InputType.TEXT)
                 .status(SearchStatus.CANDIDATES).message("후보").candidates(List.of(candidate)).build();
@@ -56,11 +57,13 @@ class SearchControllerTests {
         mvc.perform(post("/api/v1/searches").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"target\":\"ORIGIN\",\"query\":\"편의점\"}"))
                 .andExpect(status().isCreated())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(header().string("Location", "/api/v1/searches/1"))
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.code").value("201"))
                 .andExpect(jsonPath("$.data.searchId").value(1))
                 .andExpect(jsonPath("$.data.status").value("CANDIDATES"))
+                .andExpect(jsonPath("$.data.candidates[0].kind").value("facility"))
                 .andExpect(jsonPath("$.data.candidates[0].candidateId").value("place:cvs"));
     }
 
