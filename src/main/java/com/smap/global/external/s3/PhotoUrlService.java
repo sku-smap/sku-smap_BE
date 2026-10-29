@@ -19,8 +19,15 @@ public class PhotoUrlService {
     /** 한글·공백·괄호 인코딩은 SDK에 맡기며 사진 키를 임의로 정규화하지 않는다. */
     public String createUrl(String filename) {
         if (!properties.isEnabled()) return null;
-        String prefix = properties.getPrefix().replaceAll("^/+|/+$", "");
-        String key = prefix.isEmpty() ? filename : prefix + "/" + filename;
+        return sign(properties.objectKey(filename));
+    }
+
+    public String createThumbnailUrl(String filename) {
+        if (!properties.isEnabled()) return null;
+        return sign(properties.thumbnailKey(filename));
+    }
+
+    private String sign(String key) {
         var object = GetObjectRequest.builder().bucket(properties.getBucket()).key(key).build();
         var request = GetObjectPresignRequest.builder()
                 .signatureDuration(Duration.ofSeconds(properties.getUrlTtlSeconds()))

@@ -110,6 +110,9 @@ storage:
     secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
     session-token: ${AWS_SESSION_TOKEN:}
     url-ttl-seconds: ${S3_PHOTOS_URL_TTL_SECONDS:3600}
+    thumbnail-enabled: ${S3_THUMBNAILS_ENABLED:true}
+    thumbnail-folder: ${S3_THUMBNAILS_FOLDER:thumbs}
+    thumbnail-refresh-ms: ${S3_THUMBNAILS_REFRESH_MS:600000}
 
 # 전체 지도·노드·장소 목록의 DB 데이터 캐시. 사진 URL은 저장하지 않는다.
 campus:
