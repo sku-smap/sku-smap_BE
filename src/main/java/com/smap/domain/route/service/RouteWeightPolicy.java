@@ -43,10 +43,14 @@ public final class RouteWeightPolicy {
         String filename = Normalizer.normalize(
                 point.originalFilename() == null ? "" : point.originalFilename(), Normalizer.Form.NFC);
         String floor = point.floorLabel() == null ? "" : point.floorLabel().strip().toUpperCase(java.util.Locale.ROOT);
+        // 사용자가 확인한 공간 표기를 사진명 추정보다 우선한다.
+        if ("지하".equals(floor)) {
+            return option == RouteOption.COMFORTABLE ? Space.OUTDOOR : Space.INDOOR;
+        }
         boolean basement = floor.matches("B\\d+(?:F|층)?") || floor.matches("지하\\s*\\d+(?:층)?")
                 || floor.matches("-\\d+");
-        if (basement || filename.startsWith("지하주차장_") || filename.startsWith("지하1_")
-                || filename.startsWith("지하2_") || point.nodeId().equals("s1014_101709")) {
+        if (!"지상".equals(floor) && (basement || filename.startsWith("지하주차장_") || filename.startsWith("지하1_")
+                || filename.startsWith("지하2_") || point.nodeId().equals("s1014_101709"))) {
             // 같은 지하층도 사용자가 선택한 조건에 따라 공간 취급을 다르게 한다.
             return option == RouteOption.COMFORTABLE ? Space.OUTDOOR : Space.INDOOR;
         }

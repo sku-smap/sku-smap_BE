@@ -30,6 +30,11 @@ public class SearchDocumentRepository {
                              ELSE greatest(0.85 * s.kw + 0.15 * s.sem, ? * s.sem + ? * s.kw) END AS score
             FROM (
                 SELECT d.doc_type, d.ref_id, d.node_id, d.display_name, d.display_sub, d.building, d.floor_label, d.kind,
+                       CASE WHEN d.doc_type = 'PLACE' THEN
+                           (SELECT p.building_id FROM public.places p WHERE p.place_id = d.ref_id)
+                       WHEN d.doc_type = 'NODE' THEN
+                           (SELECT n.building_id FROM public.nodes n WHERE n.node_id = d.node_id)
+                       END AS building_id,
                        (SELECT coalesce(max(greatest(
                                    word_similarity(k, t.x)
                                        * (0.7 + 0.3 * least(1.0, char_length(k)::float8 / greatest(char_length(t.x), 1))),
@@ -51,7 +56,7 @@ public class SearchDocumentRepository {
 
     private static final String SERVICE_PLACE_SQL = """
             SELECT s.service_id, s.name AS service_name, p.place_id, p.arrive_node_id, p.name, p.sub,
-                   p.building, p.floor_label, p.kind
+                   p.building, p.floor_label, p.kind, p.building_id
             FROM public.service_places sp
             JOIN public.services s ON s.service_id = sp.service_id
             JOIN public.places p ON p.place_id = sp.place_id
@@ -97,7 +102,7 @@ public class SearchDocumentRepository {
                         rs.getString("kind"),
                         rs.getDouble("kw"),
                         rs.getObject("sem") == null ? null : rs.getDouble("sem"),
-                        rs.getDouble("score")),
+                        rs.getDouble("score"), rs.getString("building_id")),
                 query, core, toVector(vector), semanticWeight, keywordWeight, toTextArray(types), limit);
     }
 
@@ -115,7 +120,7 @@ public class SearchDocumentRepository {
                         rs.getString("sub"),
                         rs.getString("building"),
                         rs.getString("floor_label"),
-                        rs.getString("kind")),
+                        rs.getString("kind"), rs.getString("building_id")),
                 ids);
     }
 

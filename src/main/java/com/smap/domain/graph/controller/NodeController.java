@@ -1,5 +1,7 @@
 package com.smap.domain.graph.controller;
 
+import org.springframework.http.MediaType;
+
 import com.smap.domain.graph.dto.response.NodeResponseDTO;
 import com.smap.domain.graph.service.NodeService;
 import com.smap.global.common.response.ApiResponse;
@@ -13,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 전체 촬영 노드 목록을 제공한다. */
 @RestController
-@RequestMapping("/api/v1/nodes")
+@RequestMapping(value = "/api/v1/nodes", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class NodeController {
     private final NodeService nodeService;

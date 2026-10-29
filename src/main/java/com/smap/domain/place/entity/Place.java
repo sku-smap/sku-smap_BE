@@ -28,6 +28,10 @@ public class Place {
     /** 건물명 또는 야외 구분값. */
     private String building;
 
+    /** 장소 자체의 건물 ID이며 도착 노드의 건물과 다를 수 있다. */
+    @Column(name = "building_id", columnDefinition = "text")
+    private String buildingId;
+
     @Column(name = "floor_label", columnDefinition = "text")
     /** 원본 층 표기이며 L층과 1층을 임의로 합치지 않는다. */
     private String floorLabel;

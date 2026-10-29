@@ -1,5 +1,7 @@
 package com.smap.global.common.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,9 +11,13 @@ import lombok.Getter;
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public class ApiResponse<T> {
 
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false)
     private final boolean success;
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false)
     private final String code;
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false)
     private final String message;
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true)
     private final T data;
 
     public static <T> ApiResponse<T> success(T data) {

@@ -1,5 +1,7 @@
 package com.smap.domain.search.controller;
 
+import org.springframework.http.MediaType;
+
 import com.smap.domain.search.config.SearchProperties;
 import com.smap.domain.search.dto.response.EmbeddingJobResponseDTO;
 import com.smap.domain.search.exception.SearchErrorCode;
@@ -15,7 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/admin/embedding-jobs")
+@RequestMapping(value = "/api/v1/admin/embedding-jobs", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Admin", description = "관리자 전용 API (FE 연동 대상 아님)")
 public class EmbeddingJobController {

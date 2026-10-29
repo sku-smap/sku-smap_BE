@@ -43,6 +43,8 @@ class DeploymentParametersTests(unittest.TestCase):
         self.assertTrue(any("previous-init" in value for value in commands))
         self.assertTrue(any(value.startswith("trap ") for value in commands))
         self.assertFalse(any("-delete" in value for value in commands))
+        self.assertTrue(any("to_regclass" in value and "flyway_schema_history" in value for value in commands))
+        self.assertIn('[ -z "$MIGRATION_HISTORY" ] || break', commands[sql])
 
     def test_missing_or_oversized_configuration_is_rejected(self):
         self.environment.pop("IMAGE_TAG")

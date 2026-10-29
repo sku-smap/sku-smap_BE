@@ -1,5 +1,7 @@
 package com.smap.domain.graph.controller;
 
+import org.springframework.http.MediaType;
+
 import com.smap.domain.graph.dto.response.CampusMapResponseDTO;
 import com.smap.domain.graph.service.CampusMapService;
 import com.smap.global.common.response.ApiResponse;
@@ -12,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 출발·도착 선택 없이 실제 사진 연결을 따라 이동할 캠퍼스 둘러보기 API이다. */
 @RestController
-@RequestMapping("/api/v1/campus-map")
+@RequestMapping(value = "/api/v1/campus-map", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class CampusMapController {
     private final CampusMapService campusMapService;
