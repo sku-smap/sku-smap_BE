@@ -20,10 +20,12 @@ public record CampusMapResponseDTO(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) int totalPlaces
 ) {
     /** 캐시 원본을 수정하지 않고 현재 요청의 사진 URL을 붙인다. */
-    public CampusMapResponseDTO withImageUrls(Function<String, String> imageUrls) {
+    public CampusMapResponseDTO withImageUrls(Function<String, String> imageUrls,
+                                              Function<String, String> thumbnailUrls) {
         var signedNodes = nodes.stream().map(node -> new MapNodeDTO(node.nodeId(), node.building(),
                 node.floorLabel(), node.title(), node.originalFilename(), imageUrls.apply(node.originalFilename()),
-                node.places(), node.photoType(), node.buildingId())).toList();
+                thumbnailUrls.apply(node.originalFilename()), node.places(), node.photoType(),
+                node.buildingId())).toList();
         return new CampusMapResponseDTO(signedNodes, edges, totalNodes, totalEdges, totalPlaces);
     }
 
@@ -36,7 +38,7 @@ public record CampusMapResponseDTO(
                 .collect(Collectors.groupingBy(PlaceResponseDTO::arriveNodeId));
         var nodes = graph.nodes().values().stream().sorted(Comparator.comparing(GraphSnapshot.Point::nodeId))
                 .map(node -> new MapNodeDTO(node.nodeId(), node.building(), node.floorLabel(), node.title(),
-                        node.originalFilename(), imageUrls.apply(node.originalFilename()),
+                        node.originalFilename(), imageUrls.apply(node.originalFilename()), null,
                         List.copyOf(byNode.getOrDefault(node.nodeId(), List.of())), PhotoType.PANORAMA,
                         node.buildingId())).toList();
         var edges = graph.outgoing().values().stream().flatMap(List::stream)
@@ -57,6 +59,8 @@ public record CampusMapResponseDTO(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String title,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String originalFilename,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String imageUrl,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true,
+                    description = "목록용 썸네일(320×213 JPG) 임시 URL. 썸네일이 없으면 null") String thumbnailUrl,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) List<PlaceResponseDTO> places,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) PhotoType photoType,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String buildingId

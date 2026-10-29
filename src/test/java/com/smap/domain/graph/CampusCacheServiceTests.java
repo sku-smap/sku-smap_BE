@@ -12,6 +12,7 @@ import com.smap.domain.place.service.PlaceService;
 import com.smap.global.cache.CampusCacheProperties;
 import com.smap.global.cache.RedisJsonCache;
 import com.smap.global.external.s3.PhotoUrlService;
+import com.smap.global.external.s3.ThumbnailUrlService;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
@@ -40,13 +41,18 @@ class CampusCacheServiceTests {
     void mapLoadsDatabaseOnceButRenewsUrlsOnBothRequests() {
         var loader = mock(CampusMapDataLoader.class);
         var photos = mock(PhotoUrlService.class);
+        var thumbnails = mock(ThumbnailUrlService.class);
         var graph = new GraphSnapshot(Map.of("a", new GraphSnapshot.Point("a", "본관", "1", "본관", "a.jpg", "BON")), Map.of());
         when(loader.load()).thenReturn(CampusMapResponseDTO.from(graph, List.of(), filename -> null));
         when(photos.createUrl("a.jpg")).thenReturn("first", "second");
-        var service = new CampusMapService(loader, cache(), photos);
-        assertEquals("first", service.load().nodes().get(0).imageUrl());
+        when(thumbnails.createUrl("a.jpg")).thenReturn("thumb-first", "thumb-second");
+        var service = new CampusMapService(loader, cache(), photos, thumbnails);
+        var firstNode = service.load().nodes().get(0);
+        assertEquals("first", firstNode.imageUrl());
+        assertEquals("thumb-first", firstNode.thumbnailUrl());
         var cachedNode = service.load().nodes().get(0);
         assertEquals("second", cachedNode.imageUrl());
+        assertEquals("thumb-second", cachedNode.thumbnailUrl());
         assertEquals(com.smap.domain.graph.entity.PhotoType.PANORAMA, cachedNode.photoType());
         assertEquals("BON", cachedNode.buildingId());
         verify(loader).load();

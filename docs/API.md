@@ -27,7 +27,7 @@ URL 제공 위치·접근·만료·갱신 정책은 [사진 사용 계약](S3-PH
 
 Swagger에서 `required`는 JSON 필드가 존재해야 한다는 뜻이며, `nullable`은 그 값이 null일 수 있는지를 뜻한다.
 응답 DTO 필드는 null 값이어도 키를 포함하므로 required로 표시한다.
-예를 들어 sub·kind·imageUrl은 필수 응답 키이면서 null 허용이며, aliases는 null 대신 빈 배열을 반환한다.
+예를 들어 sub·kind·imageUrl·thumbnailUrl은 필수 응답 키이면서 null 허용이며, aliases는 null 대신 빈 배열을 반환한다.
 공통 응답 data도 키는 항상 존재하지만 오류 응답이나 반환값 없는 성공 응답에서는 null이다.
 요청의 필수 여부는 별도로 표시한다. 경로의 fromNodeId·toNodeId는 필수이며,
 option은 생략·null을 허용하고 OUTDOOR_FIRST를 사용한다.
@@ -113,6 +113,7 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
         "originalFilename": "스콘스퀘어.jpg",
         "photoType": "PANORAMA",
         "imageUrl": "<스콘스퀘어 사진의 Presigned URL>",
+        "thumbnailUrl": "<스콘스퀘어 썸네일의 Presigned URL>",
         "description": "폭풍의언덕 스콘스퀘어 입구로 이동합니다.",
         "places": []
       },
@@ -124,6 +125,7 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
         "originalFilename": "폭풍의언덕_운동장_입구.jpg",
         "photoType": "PANORAMA",
         "imageUrl": "<입구 사진의 Presigned URL>",
+        "thumbnailUrl": "<입구 썸네일의 Presigned URL>",
         "description": null,
         "places": []
       }
@@ -165,6 +167,7 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
 | `title` | string | 원본 파일명에서 확장자를 제거하고 밑줄을 공백으로 바꾼 이름 |
 | `originalFilename` | string | 원본 사진 파일명. 현재 S3 객체 키와 동일 |
 | `imageUrl` | string 또는 null | GET 전용 임시 URL. 사진 기능 비활성화 시 null |
+| `thumbnailUrl` | string 또는 null | 목록용 썸네일(320×213 JPG, 약 10KB) GET 전용 임시 URL. 썸네일이 없거나 사진 기능 비활성화 시 null |
 | `description` | string 또는 null | 다음 구간 안내. 최종 노드·통합 엘리베이터 중간 노드는 null |
 | `places` | Place[] | 해당 노드를 도착 노드로 사용하는 장소들. 없으면 빈 배열 |
 
@@ -247,6 +250,14 @@ HTTP `200 OK`. 아래는 `field` → `hill_field_entrance` 요청의 형식 예�
 - 서명 생성은 객체 존재·조회 권한을 확인하지 않는다. API 성공 후에도 S3 이미지 GET은 권한·객체 키·만료 상태에 따라 실패할 수 있다.
 - 브라우저 fetch/WebGL 조회는 S3 CORS 설정도 필요하다.
 - 설정·권한은 [S3-PHOTOS.md](S3-PHOTOS.md)를 참고한다.
+
+### 썸네일
+
+- thumbnailUrl은 단계 목록 등 작은 미리보기용이다. 360도 뷰어에는 imageUrl을 사용한다.
+- S3 키는 `{prefix}/thumbs/{originalFilename}`이다. 원본 2:1 사진에서 수평 시야 90°, 3:2로 잘라 320×213 JPG로 만든다. 가운데 방향에 정보가 적으면 다른 방향을 사용하므로 뷰어의 첫 화면 방향과 다를 수 있다.
+- 서버 시작 시와 이후 10분마다 `thumbs/` 목록을 읽어 실제 있는 썸네일만 서명한다. 없는 파일은 null이며, 이때는 imageUrl을 줄여 표시한다.
+- 목록 조회가 실패해도 API는 실패하지 않는다. 이전 목록을 유지하며 처음부터 실패하면 모두 null이다. 목록 조회에는 `s3:ListBucket` 권한이 필요하다.
+- 설정: `S3_THUMBNAILS_ENABLED`(기본 true), `S3_THUMBNAILS_FOLDER`(기본 thumbs), `S3_THUMBNAILS_REFRESH_MS`(기본 600000).
 
 ## 오류 응답
 
@@ -492,6 +503,7 @@ GET /api/v1/campus-map
         "originalFilename": "은주1관_2층_엘베앞.jpg",
         "photoType": "PANORAMA",
         "imageUrl": "<은주1관 2층 사진의 Presigned URL>",
+        "thumbnailUrl": "<은주1관 2층 썸네일의 Presigned URL>",
         "places": [
           {
             "placeId": "r-eunju1-202",
@@ -531,11 +543,11 @@ GET /api/v1/campus-map
 | data.totalEdges | Integer | 반환한 전체 방향 간선 개수 |
 | data.totalPlaces | Integer | nodes[].places에 포함된 장소 항목 수 |
 
-MapNode 필드는 nodeId, building, floorLabel, title, originalFilename, imageUrl, places, photoType, buildingId이다. places는 장소 검색 API와 같은 11개 필드이며 이름·ID 순서로 정렬한다. 연결된 장소가 없으면 빈 배열이다. 이웃 선택 전에는 이동 안내를 하나로 결정할 수 없으므로 노드 자체에는 description이 없다.
+MapNode 필드는 nodeId, building, floorLabel, title, originalFilename, imageUrl, thumbnailUrl, places, photoType, buildingId이다. places는 장소 검색 API와 같은 11개 필드이며 이름·ID 순서로 정렬한다. 연결된 장소가 없으면 빈 배열이다. 이웃 선택 전에는 이동 안내를 하나로 결정할 수 없으므로 노드 자체에는 description이 없다.
 
 MapEdge 필드는 fromNodeId, toNodeId, moveType, description, arrowYawDeg이다. 계단·엘리베이터 등 같은 노드 쌍의 다른 이동수단은 별도 간선으로 유지한다. 원본 이동 유형이 비어 있으면 moveType은 null이다. 간선별 description을 그대로 제공하며 길찾기 API와 달리 연속 엘리베이터를 합치지 않는다. 존재하지 않는 역방향 연결을 생성하지 않는다. 응답에서 참조하는 모든 노드는 nodes에 포함된다.
 
-실제 사진 원본을 다운로드하지 않고 URL만 발급한다. imageUrl은 기본 1시간이며 사진 기능 비활성화 시 null이다. 만료되면 이 API를 다시 조회한다. 캐시가 없으면 전체 노드·간선·장소를 동일 DB 스냅샷에서 읽는다. 캐시가 있으면 DB 조회 없이 해당 데이터를 사용하고 사진 URL은 요청마다 새로 발급한다. 전체 URL 발급 중 실패하면 부분 결과 대신 오류를 반환한다.
+실제 사진 원본을 다운로드하지 않고 URL만 발급한다. imageUrl·thumbnailUrl은 기본 1시간이며 사진 기능 비활성화 시 null이다. thumbnailUrl은 썸네일이 없는 노드도 null이다. 만료되면 이 API를 다시 조회한다. 캐시가 없으면 전체 노드·간선·장소를 동일 DB 스냅샷에서 읽는다. 캐시가 있으면 DB 조회 없이 해당 데이터를 사용하고 사진 URL은 요청마다 새로 발급한다. 전체 URL 발급 중 실패하면 부분 결과 대신 오류를 반환한다.
 
 ### 프론트 둘러보기 흐름
 

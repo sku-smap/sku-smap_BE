@@ -1,6 +1,7 @@
 package com.smap.domain.place;
 
 import com.smap.global.external.s3.PhotoUrlService;
+import com.smap.global.external.s3.ThumbnailUrlService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ class PlaceAndNodeApiTests {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @MockitoBean PhotoUrlService photos;
+    @MockitoBean ThumbnailUrlService thumbnails;
 
     @BeforeEach
     void seed() {
@@ -145,6 +147,7 @@ class PlaceAndNodeApiTests {
         jdbc.update("INSERT INTO edges(from_node_id,to_node_id,move_type,description) VALUES (?,?,?,?)",
                 "search-node-b", "search-node-c", "ELEVATOR", "2층으로 이동합니다.");
         when(photos.createUrl(anyString())).thenReturn("https://example.invalid/photo.jpg");
+        when(thumbnails.createUrl("은주1관_2층_엘베앞.jpg")).thenReturn("https://example.invalid/thumbs/photo.jpg");
 
         mvc.perform(get("/api/v1/campus-map"))
                 .andExpect(status().isOk())
@@ -158,6 +161,8 @@ class PlaceAndNodeApiTests {
                 .andExpect(jsonPath("$.data.nodes[0].places", hasSize(2)))
                 .andExpect(jsonPath("$.data.nodes[0].places[*].doorPhoto").isEmpty())
                 .andExpect(jsonPath("$.data.nodes[0].imageUrl").value("https://example.invalid/photo.jpg"))
+                .andExpect(jsonPath("$.data.nodes[0].thumbnailUrl").value("https://example.invalid/thumbs/photo.jpg"))
+                .andExpect(jsonPath("$.data.nodes[1].thumbnailUrl").isEmpty())
                 .andExpect(jsonPath("$.data.nodes[1].places[0].arriveNodeId").value("search-node-b"))
                 .andExpect(jsonPath("$.data.nodes[2].places").isEmpty())
                 .andExpect(jsonPath("$.data.edges[?(@.moveType == 'ELEVATOR')]", hasSize(2)))

@@ -21,11 +21,12 @@ public record RouteResponseDTO(
 ) {
     /** DB에 저장된 안내 문구를 포함해 내부 경로 결과를 API 응답으로 변환한다. */
     public static RouteResponseDTO from(RouteResult result) {
-        return from(result, filename -> null);
+        return from(result, filename -> null, filename -> null);
     }
 
     /** 응답용 사진 URL을 발급하며 순수 경로 계산과 AWS 연동을 분리한다. */
-    public static RouteResponseDTO from(RouteResult result, Function<String, String> imageUrls) {
+    public static RouteResponseDTO from(RouteResult result, Function<String, String> imageUrls,
+                                        Function<String, String> thumbnailUrls) {
         var descriptions = RouteGuidance.descriptions(result);
         return new RouteResponseDTO(
                 IntStream.range(0, result.nodes().size()).mapToObj(index -> {
@@ -36,7 +37,8 @@ public record RouteResponseDTO(
                     var places = result.placesByNode().getOrDefault(node.nodeId(), List.of()).stream()
                             .map(PlaceDTO::from).toList();
                     return new NodeDTO(node.nodeId(), node.building(), node.floorLabel(),
-                            node.title(), node.originalFilename(), imageUrls.apply(node.originalFilename()), description, places,
+                            node.title(), node.originalFilename(), imageUrls.apply(node.originalFilename()),
+                            thumbnailUrls.apply(node.originalFilename()), description, places,
                             PhotoType.PANORAMA, node.buildingId());
                 }).toList(),
                 RouteGuidance.segments(result).stream().map(segment -> new SegmentDTO(
@@ -53,6 +55,8 @@ public record RouteResponseDTO(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String title,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String originalFilename,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String imageUrl,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true,
+                    description = "목록용 썸네일(320×213 JPG) 임시 URL. 썸네일이 없으면 null") String thumbnailUrl,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String description,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) List<PlaceDTO> places,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) PhotoType photoType,

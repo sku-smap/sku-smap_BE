@@ -43,8 +43,8 @@ class CampusCacheIntegrationTests {
         var second = cache.getOrLoad(key, type, () -> { loads.incrementAndGet(); return data; });
         assertEquals(1, loads.get());
         assertEquals(first, second);
-        assertEquals("url-first", first.withImageUrls(filename -> "url-first").nodes().get(0).imageUrl());
-        assertEquals("url-second", second.withImageUrls(filename -> "url-second").nodes().get(0).imageUrl());
+        assertEquals("url-first", first.withImageUrls(filename -> "url-first", filename -> null).nodes().get(0).imageUrl());
+        assertEquals("url-second", second.withImageUrls(filename -> "url-second", filename -> null).nodes().get(0).imageUrl());
         String raw = redis.opsForValue().get(key);
         assertNotNull(raw);
         assertFalse(raw.contains("url-first"));

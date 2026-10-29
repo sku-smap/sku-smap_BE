@@ -31,4 +31,22 @@ public class PhotoStorageProperties {
     @Min(1)
     @Max(604800)
     private long urlTtlSeconds = 3600;
+    private boolean thumbnailEnabled = true;
+    @NotBlank
+    private String thumbnailFolder = "thumbs";
+    @Min(10000)
+    private long thumbnailRefreshMs = 600000;
+
+    public String objectKey(String filename) {
+        String base = prefix.replaceAll("^/+|/+$", "");
+        return base.isEmpty() ? filename : base + "/" + filename;
+    }
+
+    public String thumbnailKey(String filename) {
+        return thumbnailFolderKey() + filename;
+    }
+
+    public String thumbnailFolderKey() {
+        return objectKey(thumbnailFolder.replaceAll("^/+|/+$", "") + "/");
+    }
 }

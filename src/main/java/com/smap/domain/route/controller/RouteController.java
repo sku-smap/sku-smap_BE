@@ -7,6 +7,7 @@ import com.smap.domain.route.dto.response.RouteResponseDTO;
 import com.smap.domain.route.service.RouteService;
 import com.smap.global.common.response.ApiResponse;
 import com.smap.global.external.s3.PhotoUrlService;
+import com.smap.global.external.s3.ThumbnailUrlService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,13 +23,15 @@ public class RouteController {
     private final RouteService routeService;
     /** 비공개 사진 조회용 임시 URL 발급 서비스. */
     private final PhotoUrlService photoUrlService;
+    private final ThumbnailUrlService thumbnailUrlService;
 
     /** 기본 야외경로 우선 또는 선택 조건에 맞는 경로와 장소 정보를 반환한다. */
     @Operation(summary = "경로 조회", description = "option은 OUTDOOR_FIRST(기본), COMFORTABLE, SHORTEST, INDOOR_UNDERGROUND_FIRST 중 하나입니다. 최단거리는 모든 간선 비용 1입니다.")
     @PostMapping
     public ResponseEntity<ApiResponse<RouteResponseDTO>> find(@Valid @RequestBody RouteRequestDTO request) {
         RouteResponseDTO response = RouteResponseDTO.from(
-                routeService.find(request.fromNodeId(), request.toNodeId(), request.option()), photoUrlService::createUrl);
+                routeService.find(request.fromNodeId(), request.toNodeId(), request.option()),
+                photoUrlService::createUrl, thumbnailUrlService::createUrl);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
