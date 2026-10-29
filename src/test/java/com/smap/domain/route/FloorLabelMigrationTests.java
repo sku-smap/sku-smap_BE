@@ -70,7 +70,7 @@ class FloorLabelMigrationTests {
                     String placeFingerprint = scalar(connection,
                             "SELECT md5(string_agg(to_jsonb(p)::text, '' ORDER BY place_id)) FROM places p");
                     var buildingMigration = Flyway.configure().dataSource(url, "smap", "smap")
-                            .schemas(schema).defaultSchema(schema).load();
+                            .schemas(schema).defaultSchema(schema).target("3").load();
                     assertEquals(1, buildingMigration.migrate().migrationsExecuted);
                     assertEquals(0, buildingMigration.migrate().migrationsExecuted);
                     assertEquals("0", scalar(connection, "SELECT count(*) FROM nodes WHERE building_id IS NULL"));
@@ -87,6 +87,25 @@ class FloorLabelMigrationTests {
                             "SELECT md5(string_agg((to_jsonb(n) - 'building_id')::text, '' ORDER BY node_id)) FROM nodes n"));
                     assertEquals(placeFingerprint, scalar(connection,
                             "SELECT md5(string_agg((to_jsonb(p) - 'building_id')::text, '' ORDER BY place_id)) FROM places p"));
+                    String beforeArrows = scalar(connection,
+                            "SELECT md5(string_agg(to_jsonb(e)::text, '' ORDER BY from_node_id,to_node_id,move_type)) FROM edges e");
+                    // 운영에 먼저 적용한 뒤 다음 배포에서 Flyway가 실행되어도 안전해야 한다.
+                    connection.setAutoCommit(false);
+                    statement.execute(Files.readString(Path.of("src/main/resources/db/migration/V4__add_edge_arrow_yaw.sql")));
+                    connection.commit();
+                    connection.setAutoCommit(true);
+                    var arrowMigration = Flyway.configure().dataSource(url, "smap", "smap")
+                            .schemas(schema).defaultSchema(schema).load();
+                    assertEquals(1, arrowMigration.migrate().migrationsExecuted);
+                    assertEquals(0, arrowMigration.migrate().migrationsExecuted);
+                    assertEquals("918", scalar(connection, "SELECT count(*) FROM edges"));
+                    assertEquals("914", scalar(connection, "SELECT count(*) FROM edges WHERE arrow_yaw_deg IS NOT NULL"));
+                    assertEquals("4", scalar(connection, "SELECT count(*) FROM edges WHERE arrow_yaw_deg IS NULL"));
+                    assertEquals("303", scalar(connection, "SELECT arrow_yaw_deg FROM edges WHERE from_node_id='field' AND to_node_id='hill_field_entrance' AND move_type='WALK'"));
+                    assertEquals(beforeArrows, scalar(connection,
+                            "SELECT md5(string_agg((to_jsonb(e) - 'arrow_yaw_deg')::text, '' ORDER BY from_node_id,to_node_id,move_type)) FROM edges e"));
+                    assertThrows(java.sql.SQLException.class, () -> statement.execute(
+                            "UPDATE edges SET arrow_yaw_deg=360 WHERE from_node_id='field' AND to_node_id='hill_field_entrance'"));
                 } finally {
                     statement.execute("ROLLBACK");
                     connection.setSchema("public");

@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Check;
 
-/** 연결 CSV의 10개 컬럼을 그대로 저장한다. 시간이나 보정 정보를 추가하지 않는다. */
+/** 확정 연결 정보와 출발 사진에서 도착 지점을 가리키는 화살표 각도를 저장한다. */
 @Getter
 @Entity
 @Table(name = "edges")
@@ -56,4 +56,8 @@ public class Edge {
     /** 사용자가 작성한 원본 이동 안내 문구. */
     @Column(columnDefinition = "text")
     private String description;
+
+    /** CSV에서 제공한 수평 각도. 매칭 데이터가 없으면 NULL이며 유효 범위는 0 이상 360 미만이다. */
+    @Column(name = "arrow_yaw_deg")
+    private Double arrowYawDeg;
 }
