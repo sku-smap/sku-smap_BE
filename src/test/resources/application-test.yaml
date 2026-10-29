@@ -27,3 +27,7 @@ campus:
   cache:
     enabled: false
 
+
+storage:
+  photos:
+    thumbnail-enabled: false
