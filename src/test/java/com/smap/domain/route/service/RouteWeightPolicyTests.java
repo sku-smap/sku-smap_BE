@@ -60,7 +60,7 @@ class RouteWeightPolicyTests {
 
     @Test
     void basementClassificationDependsOnOption() {
-        for (String floor : List.of("B1", "B2", "지하1층", "-1")) {
+        for (String floor : List.of("B1", "B2", "B1층", "B2층", "지하", "지하1층", "-1")) {
             var point = point("basement", "야외", floor);
             assertEquals(RouteWeightPolicy.Space.INDOOR, RouteWeightPolicy.classify(point, RouteOption.INDOOR_UNDERGROUND_FIRST));
             assertEquals(RouteWeightPolicy.Space.OUTDOOR, RouteWeightPolicy.classify(point, RouteOption.COMFORTABLE));
@@ -68,6 +68,15 @@ class RouteWeightPolicyTests {
         var parking = new Point("parking", "야외", null, "주차장", "지하주차장_본관통로.jpg");
         assertEquals(RouteWeightPolicy.Space.INDOOR, RouteWeightPolicy.classify(parking, RouteOption.INDOOR_UNDERGROUND_FIRST));
         assertEquals(RouteWeightPolicy.Space.OUTDOOR, RouteWeightPolicy.classify(parking, RouteOption.COMFORTABLE));
+    }
+
+    @Test
+    void confirmedGroundOverridesBasementFilename() {
+        var point = new Point("s1014_101449", "야외", "지상", "본관통로 앞", "지하주차장_본관통로_앞.jpg");
+        assertEquals(RouteWeightPolicy.Space.OUTDOOR, RouteWeightPolicy.classify(point, RouteOption.INDOOR_UNDERGROUND_FIRST));
+        assertEquals(RouteWeightPolicy.Space.OUTDOOR, RouteWeightPolicy.classify(point, RouteOption.OUTDOOR_FIRST));
+        assertEquals(RouteWeightPolicy.Space.INDOOR,
+                RouteWeightPolicy.classify(point("suin_hall_in", "수인관", "지상"), RouteOption.INDOOR_UNDERGROUND_FIRST));
     }
 
     private Point point(String id, String building, String floor) { return new Point(id, building, floor, id, id + ".jpg"); }
