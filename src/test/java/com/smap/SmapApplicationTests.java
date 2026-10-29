@@ -16,7 +16,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "cors.allowed-origins=http://localhost:3000,http://localhost:5173,https://sku-smap.vercel.app"
+})
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 class SmapApplicationTests {
