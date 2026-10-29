@@ -41,7 +41,7 @@ public record RouteResponseDTO(
                 }).toList(),
                 RouteGuidance.segments(result).stream().map(segment -> new SegmentDTO(
                         segment.fromNodeId(), segment.toNodeId(), segment.moveType(),
-                        segment.description())).toList(),
+                        segment.description(), segment.arrowYawDeg())).toList(),
                 result.totalSteps());
     }
 
@@ -87,6 +87,7 @@ public record RouteResponseDTO(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String fromNodeId,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String toNodeId,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) MoveType moveType,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String description
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String description,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true, description = "출발 사진 기준 화살표 수평 각도. 통합 엘리베이터 구간은 첫 원본 간선의 각도이며 미지정은 null") Double arrowYawDeg
     ) {}
 }

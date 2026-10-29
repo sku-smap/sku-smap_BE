@@ -40,7 +40,7 @@ public class GraphService {
                 .computeIfAbsent(edge.getFromNodeId(), ignored -> new ArrayList<>())
                 .add(new GraphSnapshot.Segment(edge.getFromNodeId(), edge.getToNodeId(),
                         edge.getMoveType().isBlank() ? null : MoveType.valueOf(edge.getMoveType()),
-                        edge.getDescription())));
+                        edge.getDescription(), edge.getArrowYawDeg())));
         // 동률 경로의 선택이 DB 조회 순서에 따라 달라지지 않도록 간선을 정렬한다.
         outgoing.values().forEach(edges -> edges.sort(Comparator
                 .comparing(GraphSnapshot.Segment::toNodeId)

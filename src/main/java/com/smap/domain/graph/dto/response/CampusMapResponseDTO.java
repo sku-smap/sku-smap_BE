@@ -43,7 +43,7 @@ public record CampusMapResponseDTO(
                 .sorted(Comparator.comparing(GraphSnapshot.Segment::fromNodeId)
                         .thenComparing(GraphSnapshot.Segment::toNodeId)
                         .thenComparing(edge -> edge.moveType() == null ? "" : edge.moveType().name()))
-                .map(edge -> new MapEdgeDTO(edge.fromNodeId(), edge.toNodeId(), edge.moveType(), edge.description()))
+                .map(MapEdgeDTO::from)
                 .toList();
         int totalPlaces = nodes.stream().mapToInt(node -> node.places().size()).sum();
         return new CampusMapResponseDTO(nodes, edges, nodes.size(), edges.size(), totalPlaces);
@@ -67,6 +67,11 @@ public record CampusMapResponseDTO(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String fromNodeId,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false) String toNodeId,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) MoveType moveType,
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String description
-    ) {}
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true) String description,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = true, description = "출발 사진 기준 화살표 수평 각도. 0 이상 360 미만이며 미지정은 null") Double arrowYawDeg
+    ) {
+        public static MapEdgeDTO from(GraphSnapshot.Segment edge) {
+            return new MapEdgeDTO(edge.fromNodeId(), edge.toNodeId(), edge.moveType(), edge.description(), edge.arrowYawDeg());
+        }
+    }
 }
