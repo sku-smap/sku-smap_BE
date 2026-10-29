@@ -58,9 +58,16 @@ DB 테이블·컬럼 추가 없이 응답 DTO에서 제공한다.
     "Effect": "Allow",
     "Action": "s3:GetObject",
     "Resource": "arn:aws:s3:::smap-photos-450974103987-ap-northeast-2-an/*"
+  }, {
+    "Effect": "Allow",
+    "Action": "s3:ListBucket",
+    "Resource": "arn:aws:s3:::smap-photos-450974103987-ap-northeast-2-an",
+    "Condition": {"StringLike": {"s3:prefix": "thumbs/*"}}
   }]
 }
 ```
+
+`s3:ListBucket`은 썸네일(`thumbs/`) 목록 조회용이다. 이 권한이 없어도 API는 실패하지 않으며 thumbnailUrl만 null이 된다.
 
 AWS CLI를 사용하는 로컬 환경은 `aws configure --profile smap` 등으로 프로필을 설정하고, 서버 실행 프로세스에 `AWS_PROFILE=smap`을 설정한다. 운영 컨테이너도 역할 자격 증명에 접근할 수 있어야 한다.
 

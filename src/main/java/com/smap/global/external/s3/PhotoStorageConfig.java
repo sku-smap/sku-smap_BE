@@ -3,9 +3,12 @@ package com.smap.global.external.s3;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import java.util.Optional;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
@@ -15,6 +18,18 @@ public class PhotoStorageConfig {
     @Bean(destroyMethod = "close")
     public S3Presigner photoPresigner(PhotoStorageProperties properties) {
         var builder = S3Presigner.builder().region(Region.of(properties.getRegion()));
+        credentials(properties).ifPresent(builder::credentialsProvider);
+        return builder.build();
+    }
+
+    @Bean(destroyMethod = "close")
+    public S3Client photoS3Client(PhotoStorageProperties properties) {
+        var builder = S3Client.builder().region(Region.of(properties.getRegion()));
+        credentials(properties).ifPresent(builder::credentialsProvider);
+        return builder.build();
+    }
+
+    private Optional<AwsCredentialsProvider> credentials(PhotoStorageProperties properties) {
         boolean accessKeySet = !properties.getAccessKeyId().isBlank();
         boolean secretKeySet = !properties.getSecretAccessKey().isBlank();
         if (accessKeySet != secretKeySet) {
@@ -28,8 +43,8 @@ public class PhotoStorageConfig {
                     ? AwsBasicCredentials.create(properties.getAccessKeyId(), properties.getSecretAccessKey())
                     : AwsSessionCredentials.create(properties.getAccessKeyId(), properties.getSecretAccessKey(),
                             properties.getSessionToken());
-            builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
+            return Optional.of(StaticCredentialsProvider.create(credentials));
         }
-        return builder.build();
+        return Optional.empty();
     }
 }

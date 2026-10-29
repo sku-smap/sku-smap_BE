@@ -12,6 +12,7 @@ import com.smap.global.common.exception.GlobalExceptionHandler;
 import java.util.List;
 import com.smap.domain.route.model.RouteOption;
 import com.smap.global.external.s3.PhotoUrlService;
+import com.smap.global.external.s3.ThumbnailUrlService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -30,6 +31,7 @@ class RouteControllerTests {
     @Autowired MockMvc mvc;
     @MockitoBean RouteService service;
     @MockitoBean PhotoUrlService photoUrls;
+    @MockitoBean ThumbnailUrlService thumbnailUrls;
 
     /** 네 조건을 서비스로 전달하며 잘못된 조건은 입력 오류로 처리한다. */
     @Test
@@ -51,6 +53,7 @@ class RouteControllerTests {
     @Test
     void returnsOrderedRoute() throws Exception {
         when(photoUrls.createUrl("a.jpg")).thenReturn("https://example.com/a.jpg?signature=test");
+        when(thumbnailUrls.createUrl("a.jpg")).thenReturn("https://example.com/thumbs/a.jpg?signature=test");
         when(service.find("a", "b", RouteOption.OUTDOOR_FIRST)).thenReturn(new RouteResult(
                 List.of(new Point("a", "야외", null, "출발", "a.jpg", "OUTDOOR_GROUND"),
                         new Point("b", "본관", "1", "도착", "b.jpg")),
@@ -63,6 +66,8 @@ class RouteControllerTests {
                 .andExpect(jsonPath("$.data.nodes[0].photoType").value("PANORAMA"))
                 .andExpect(jsonPath("$.data.nodes[0].buildingId").value("OUTDOOR_GROUND"))
                 .andExpect(jsonPath("$.data.nodes[0].imageUrl").value("https://example.com/a.jpg?signature=test"))
+                .andExpect(jsonPath("$.data.nodes[0].thumbnailUrl").value("https://example.com/thumbs/a.jpg?signature=test"))
+                .andExpect(jsonPath("$.data.nodes[1].thumbnailUrl").isEmpty())
                 .andExpect(jsonPath("$.data.nodes[1].originalFilename").value("b.jpg"))
                 .andExpect(jsonPath("$.data.nodes[0].description").value("본관으로 이동합니다."))
                 .andExpect(jsonPath("$.data.nodes[0].places").isEmpty())
