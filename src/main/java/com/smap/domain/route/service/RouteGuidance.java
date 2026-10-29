@@ -40,7 +40,8 @@ public final class RouteGuidance {
             Point to = route.nodes().get(end + 1);
             String description = "엘리베이터를 타고 " + floor(from.floorLabel())
                     + "에서 " + floor(to.floorLabel()) + "으로 이동합니다.";
-            result.add(new Group(start, new Segment(from.nodeId(), to.nodeId(), MoveType.ELEVATOR, description)));
+            result.add(new Group(start, new Segment(from.nodeId(), to.nodeId(), MoveType.ELEVATOR, description,
+                    route.segments().get(start).arrowYawDeg())));
             start = end;
         }
         return result;

@@ -2,11 +2,10 @@ package com.smap.domain.graph;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smap.domain.graph.dto.response.CampusMapResponseDTO;
-import com.smap.domain.graph.entity.Node;
-import com.smap.domain.graph.repository.NodeRepository;
 import com.smap.domain.graph.service.CampusMapDataLoader;
 import com.smap.domain.graph.service.CampusMapService;
 import com.smap.domain.graph.service.GraphSnapshot;
+import com.smap.domain.graph.service.GraphService;
 import com.smap.domain.graph.service.NodeService;
 import com.smap.domain.place.repository.PlaceRepository;
 import com.smap.domain.place.service.PlaceService;
@@ -19,7 +18,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import static org.junit.jupiter.api.Assertions.*;
@@ -63,21 +61,23 @@ class CampusCacheServiceTests {
 
     @Test
     void allNodesAndPlacesAreCachedButKeywordSearchStillQueriesDatabase() {
-        var nodes = mock(NodeRepository.class);
-        var node = mock(Node.class);
-        when(node.getNodeId()).thenReturn("a");
-        when(node.getOriginalFilename()).thenReturn("a.jpg");
-        when(nodes.findAll(any(Sort.class))).thenReturn(List.of(node));
+        var graphService = mock(GraphService.class);
+        var graph = new GraphSnapshot(Map.of(
+                "a", new GraphSnapshot.Point("a", "본관", "1층", "a", "a.jpg"),
+                "b", new GraphSnapshot.Point("b", "본관", "1층", "b", "b.jpg")),
+                Map.of("a", List.of(new GraphSnapshot.Segment("a", "b", com.smap.domain.graph.entity.MoveType.WALK, "이동", 21.0))));
+        when(graphService.load()).thenReturn(graph);
         var places = mock(PlaceRepository.class);
         when(places.searchConnected(anyString())).thenReturn(List.of());
         var shared = cache();
-        var nodeService = new NodeService(nodes, shared);
+        var nodeService = new NodeService(graphService, shared);
         var placeService = new PlaceService(places, shared);
         assertEquals(nodeService.findAll(), nodeService.findAll());
+        assertEquals(21.0, nodeService.findAll().get(0).outgoingEdges().get(0).arrowYawDeg());
         placeService.search(null);
         placeService.search("   ");
         placeService.search("본관");
-        verify(nodes).findAll(any(Sort.class));
+        verify(graphService).load();
         verify(places).searchConnected("");
         verify(places).searchConnected("본관");
     }
