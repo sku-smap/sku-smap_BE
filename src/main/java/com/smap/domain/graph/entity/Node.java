@@ -23,6 +23,10 @@ public class Node {
     @Column(name = "building", nullable = false, columnDefinition = "text")
     private String building;
 
+    /** 표시명과 별도로 유지하는 고정 건물·야외 구역 ID이다. */
+    @Column(name = "building_id", columnDefinition = "text")
+    private String buildingId;
+
     /** 원본 층 표기이며 L층·지하층·미지정 값을 그대로 보존한다. */
     @Column(name = "floor_label", columnDefinition = "text")
     private String floorLabel;

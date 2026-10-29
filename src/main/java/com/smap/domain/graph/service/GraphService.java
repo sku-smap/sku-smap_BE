@@ -31,7 +31,7 @@ public class GraphService {
             nodes.put(node.getNodeId(),
                 new GraphSnapshot.Point(node.getNodeId(), node.getBuilding(), node.getFloorLabel(),
                         node.getOriginalFilename().replaceFirst("(?i)\\.jpe?g$", "").replace('_', ' '),
-                        node.getOriginalFilename()));
+                        node.getOriginalFilename(), node.getBuildingId()));
         });
         // 출발 노드별로 방향 간선을 묶는다. 역방향 간선은 임의로 생성하지 않는다.
         Map<String, List<GraphSnapshot.Segment>> outgoing = new HashMap<>();

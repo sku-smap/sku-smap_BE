@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/v1/searches")
+@RequestMapping(value = "/api/v1/searches", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 @Tag(name = "Search", description = "AI 장소 검색 API (텍스트·음성 → 출발지/목적지 후보)")
 public class SearchController {

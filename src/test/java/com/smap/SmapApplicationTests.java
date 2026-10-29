@@ -16,7 +16,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "cors.allowed-origins=http://localhost:3000,http://localhost:5173,https://sku-smap.vercel.app"
+})
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 class SmapApplicationTests {
@@ -62,12 +64,22 @@ class SmapApplicationTests {
 
     @Test
     void frontendCorsWorksWithoutSecurityConfiguration() throws Exception {
-        mockMvc.perform(options("/api/v1/routes")
-                        .header("Origin", "http://localhost:3000")
+        for (String origin : new String[]{"http://localhost:3000", "http://localhost:5173", "https://sku-smap.vercel.app"}) {
+            mockMvc.perform(options("/api/v1/routes")
+                        .header("Origin", origin)
                         .header("Access-Control-Request-Method", "POST")
                         .header("Access-Control-Request-Headers", "content-type"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"));
+                .andExpect(header().string("Access-Control-Allow-Origin", origin));
+        }
+        mockMvc.perform(get("/api/v1/nodes").header("Origin", "https://sku-smap.vercel.app"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://sku-smap.vercel.app"));
+        mockMvc.perform(options("/api/v1/routes")
+                        .header("Origin", "https://sku-smap.vercel.app.attacker.example")
+                        .header("Access-Control-Request-Method", "POST"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
     }
 
     @Test

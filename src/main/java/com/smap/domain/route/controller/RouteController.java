@@ -1,5 +1,7 @@
 package com.smap.domain.route.controller;
 
+import org.springframework.http.MediaType;
+
 import com.smap.domain.route.dto.request.RouteRequestDTO;
 import com.smap.domain.route.dto.response.RouteResponseDTO;
 import com.smap.domain.route.service.RouteService;
@@ -13,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 /** 입력 검증 후 길찾기 서비스에 위임하고 공통 응답 형식으로 결과를 반환한다. */
 @RestController
-@RequestMapping("/api/v1/routes")
+@RequestMapping(value = "/api/v1/routes", produces = MediaType.APPLICATION_JSON_VALUE)
 @RequiredArgsConstructor
 public class RouteController {
     /** 그래프 조회와 최단경로 계산을 담당하는 서비스이다. */

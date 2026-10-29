@@ -33,7 +33,12 @@ public record GraphSnapshot(Map<String, Point> nodes, Map<String, List<Segment>>
 
     /** DB의 촬영 지점 정보이며 공간 분류나 선호 비용은 계산하지 않는다. */
     public record Point(String nodeId, String building, String floorLabel,
-                        String title, String originalFilename) {}
+                        String title, String originalFilename, String buildingId) {
+        /** 기존 순수 그래프 테스트·탐색 호출은 건물 ID 없이도 사용할 수 있다. */
+        public Point(String nodeId, String building, String floorLabel, String title, String originalFilename) {
+            this(nodeId, building, floorLabel, title, originalFilename, null);
+        }
+    }
 
     /** CSV의 양 끝 노드·이동 유형·안내 문구만 사용하며 시간은 포함하지 않는다. */
     public record Segment(String fromNodeId, String toNodeId, MoveType moveType, String description) {

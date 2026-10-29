@@ -17,18 +17,18 @@ import org.springframework.web.multipart.MultipartFile;
 public class VoiceSearchRequestDTO {
 
     @NotNull
-    @Schema(description = "찾는 대상. ORIGIN=지금 있는 곳(출발지), DESTINATION=가고 싶은 곳(목적지)", example = "DESTINATION")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false, description = "찾는 대상. ORIGIN=지금 있는 곳(출발지), DESTINATION=가고 싶은 곳(목적지)", example = "DESTINATION")
     private SearchTarget target;
 
-    @Schema(description = "녹음 파일 (m4a·wav·webm 등, 1MB 이하)", type = "string", format = "binary")
+    @Schema(requiredMode = Schema.RequiredMode.REQUIRED, nullable = false, description = "녹음 파일 (m4a·wav·webm 등, 1MB 이하)", type = "string", format = "binary")
     private MultipartFile audio;
 
-    @Schema(description = "녹음 길이(ms, 15000 이하). STT 대기 시간 계산에 사용", example = "3200")
+    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true, description = "녹음 길이(ms, 15000 이하). STT 대기 시간 계산에 사용", example = "3200")
     private Integer durationMs;
 
     @Min(1)
     @Max(10)
-    @Schema(description = "받을 후보 최대 개수 (1~10, 생략 시 5)", example = "5")
+    @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true, description = "받을 후보 최대 개수 (1~10, 생략 시 5)", example = "5")
     private Integer limit;
 
     public int limitOrDefault() {

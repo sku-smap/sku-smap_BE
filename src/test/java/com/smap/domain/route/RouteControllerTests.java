@@ -52,7 +52,7 @@ class RouteControllerTests {
     void returnsOrderedRoute() throws Exception {
         when(photoUrls.createUrl("a.jpg")).thenReturn("https://example.com/a.jpg?signature=test");
         when(service.find("a", "b", RouteOption.OUTDOOR_FIRST)).thenReturn(new RouteResult(
-                List.of(new Point("a", "야외", null, "출발", "a.jpg"),
+                List.of(new Point("a", "야외", null, "출발", "a.jpg", "OUTDOOR_GROUND"),
                         new Point("b", "본관", "1", "도착", "b.jpg")),
                 List.of(new Segment("a", "b", MoveType.WALK, "본관으로 이동합니다."))));
         mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON)
@@ -60,6 +60,8 @@ class RouteControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.nodes[0].nodeId").value("a"))
+                .andExpect(jsonPath("$.data.nodes[0].photoType").value("PANORAMA"))
+                .andExpect(jsonPath("$.data.nodes[0].buildingId").value("OUTDOOR_GROUND"))
                 .andExpect(jsonPath("$.data.nodes[0].imageUrl").value("https://example.com/a.jpg?signature=test"))
                 .andExpect(jsonPath("$.data.nodes[1].originalFilename").value("b.jpg"))
                 .andExpect(jsonPath("$.data.nodes[0].description").value("본관으로 이동합니다."))
@@ -70,6 +72,24 @@ class RouteControllerTests {
                 .andExpect(jsonPath("$.data.segments[0].description").value("본관으로 이동합니다."))
                 .andExpect(jsonPath("$.data.totalTimeSeconds").doesNotExist())
                 .andExpect(jsonPath("$.data.totalSteps").value(1));
+    }
+
+    /** DB에 장소 사진이 있어도 경로 응답에는 노출하지 않는다. */
+    @Test
+    void routePlacesDoNotExposeDoorPhotos() throws Exception {
+        var place = mock(com.smap.domain.place.entity.Place.class);
+        when(place.getPlaceId()).thenReturn("place-a");
+        when(place.getBuildingId()).thenReturn("BON");
+        when(place.getDoorPhoto()).thenReturn("door/example.jpg");
+        when(service.find("a", "a", RouteOption.OUTDOOR_FIRST)).thenReturn(new RouteResult(
+                List.of(new Point("a", "본관", "1층", "출발", "a.jpg")), List.of(),
+                java.util.Map.of("a", List.of(place))));
+        mvc.perform(post("/api/v1/routes").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fromNodeId\":\"a\",\"toNodeId\":\"a\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nodes[0].places[0].placeId").value("place-a"))
+                .andExpect(jsonPath("$.data.nodes[0].places[0].buildingId").value("BON"))
+                .andExpect(jsonPath("$.data.nodes[0].places[0].doorPhoto").doesNotExist());
     }
 
     /** 누락·공백 ID 및 잘못된 JSON은 서비스 호출 전에 거부한다. */

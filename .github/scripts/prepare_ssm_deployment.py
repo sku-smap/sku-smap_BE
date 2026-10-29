@@ -36,7 +36,11 @@ def build_parameters(environment):
         'mv "$STAGING_DIR/db/init" db/init',
         'mv "$STAGING_DIR/docker-compose-prod.yaml" docker-compose-prod.yaml',
         'docker compose --env-file .env.prod -f docker-compose-prod.yaml up -d --wait --wait-timeout 180 postgres',
-        'for f in db/init/*.sql; do [ -e "$f" ] || continue; '
+        # Flyway 도입 전 기존 DB에만 초기 SQL을 적용한다. 이후 갱신은 버전 마이그레이션이 담당한다.
+        'MIGRATION_HISTORY=$(docker compose --env-file .env.prod -f docker-compose-prod.yaml exec -T postgres '
+        'sh -c \'psql -v ON_ERROR_STOP=1 -At -U "$POSTGRES_USER" -d "$POSTGRES_DB" '
+        '-c "SELECT to_regclass(\\$\\$public.flyway_schema_history\\$\\$);"\')',
+        'for f in db/init/*.sql; do [ -z "$MIGRATION_HISTORY" ] || break; [ -e "$f" ] || continue; '
         'docker compose --env-file .env.prod -f docker-compose-prod.yaml exec -T postgres '
         'sh -c \'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"\' < "$f"; done',
         'docker compose --env-file .env.prod -f docker-compose-prod.yaml up -d --wait --wait-timeout 180',

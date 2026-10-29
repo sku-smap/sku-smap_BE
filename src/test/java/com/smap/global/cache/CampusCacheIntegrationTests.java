@@ -54,8 +54,8 @@ class CampusCacheIntegrationTests {
 
     @Test
     void listTypesRoundTripAndExpiredCacheReloads() {
-        var nodes = List.of(new NodeResponseDTO("a", "본관", "1", "본관", "본관.jpg"));
-        var places = List.of(new PlaceResponseDTO("p", "강의실", "room", "본관", "1", "101", "a", "본관", null, null, null));
+        var nodes = List.of(new NodeResponseDTO("a", "본관", "1", "본관", "본관.jpg", com.smap.domain.graph.entity.PhotoType.PANORAMA, "BON"));
+        var places = List.of(new PlaceResponseDTO("p", "강의실", com.smap.domain.place.entity.PlaceKind.ROOM, "본관", "1", "101", "a", "본관", List.of(), null, "BON"));
         AtomicInteger nodeLoads = new AtomicInteger();
         AtomicInteger placeLoads = new AtomicInteger();
         var nodeType = new TypeReference<List<NodeResponseDTO>>() {};

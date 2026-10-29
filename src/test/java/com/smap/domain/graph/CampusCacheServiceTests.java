@@ -42,12 +42,15 @@ class CampusCacheServiceTests {
     void mapLoadsDatabaseOnceButRenewsUrlsOnBothRequests() {
         var loader = mock(CampusMapDataLoader.class);
         var photos = mock(PhotoUrlService.class);
-        var graph = new GraphSnapshot(Map.of("a", new GraphSnapshot.Point("a", "본관", "1", "본관", "a.jpg")), Map.of());
+        var graph = new GraphSnapshot(Map.of("a", new GraphSnapshot.Point("a", "본관", "1", "본관", "a.jpg", "BON")), Map.of());
         when(loader.load()).thenReturn(CampusMapResponseDTO.from(graph, List.of(), filename -> null));
         when(photos.createUrl("a.jpg")).thenReturn("first", "second");
         var service = new CampusMapService(loader, cache(), photos);
         assertEquals("first", service.load().nodes().get(0).imageUrl());
-        assertEquals("second", service.load().nodes().get(0).imageUrl());
+        var cachedNode = service.load().nodes().get(0);
+        assertEquals("second", cachedNode.imageUrl());
+        assertEquals(com.smap.domain.graph.entity.PhotoType.PANORAMA, cachedNode.photoType());
+        assertEquals("BON", cachedNode.buildingId());
         verify(loader).load();
         verify(photos, times(2)).createUrl("a.jpg");
     }
