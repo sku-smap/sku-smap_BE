@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -48,14 +47,8 @@ public class QueryParser {
         String text = SPACES.matcher(query.strip()).replaceAll(" ");
         RouteOption routeOption = null;
         if (target == SearchTarget.DESTINATION) {
-            for (Map.Entry<RouteOption, Pattern> entry : ROUTE_OPTIONS.entrySet()) {
-                Matcher matcher = entry.getValue().matcher(text);
-                if (matcher.find()) {
-                    routeOption = entry.getKey();
-                    text = matcher.replaceAll(" ");
-                    break;
-                }
-            }
+            routeOption = findRouteOption(text);
+            text = removeRouteOption(text);
         }
         text = SPACES.matcher(text).replaceAll(" ").strip();
         String stripped = ENDING.matcher(text).replaceFirst("").strip();
@@ -73,6 +66,20 @@ public class QueryParser {
                 .map(token -> GLUED_RELATION.matcher(token).replaceFirst("$1"))
                 .collect(Collectors.joining(" ")), normalized);
         return new ParsedQuery(query, normalized, core, routeOption);
+    }
+
+    public RouteOption findRouteOption(String text) {
+        for (Map.Entry<RouteOption, Pattern> entry : ROUTE_OPTIONS.entrySet()) {
+            if (entry.getValue().matcher(text).find()) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    public String removeRouteOption(String text) {
+        RouteOption routeOption = findRouteOption(text);
+        return routeOption == null ? text : ROUTE_OPTIONS.get(routeOption).matcher(text).replaceAll(" ");
     }
 
     private static String keepIfEmpty(String value, String fallback) {

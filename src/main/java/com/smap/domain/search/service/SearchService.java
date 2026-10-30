@@ -1,10 +1,14 @@
 package com.smap.domain.search.service;
 
+import com.smap.domain.route.model.RouteOption;
 import com.smap.domain.search.config.SearchProperties;
+import com.smap.domain.search.dto.request.RouteSearchRequestDTO;
 import com.smap.domain.search.dto.request.SearchRequestDTO;
 import com.smap.domain.search.dto.request.SelectionRequestDTO;
+import com.smap.domain.search.dto.request.VoiceRouteSearchRequestDTO;
 import com.smap.domain.search.dto.request.VoiceSearchRequestDTO;
 import com.smap.domain.search.dto.response.CandidateDTO;
+import com.smap.domain.search.dto.response.RouteSearchResponseDTO;
 import com.smap.domain.search.dto.response.SearchResponseDTO;
 import com.smap.domain.search.entity.SearchLog;
 import com.smap.domain.search.exception.SearchErrorCode;
@@ -14,6 +18,7 @@ import com.smap.domain.search.model.DocumentHit;
 import com.smap.domain.search.model.InputType;
 import com.smap.domain.search.model.MatchedBy;
 import com.smap.domain.search.model.ParsedQuery;
+import com.smap.domain.search.model.RouteQuery;
 import com.smap.domain.search.model.SearchStatus;
 import com.smap.domain.search.model.SearchTarget;
 import com.smap.domain.search.model.ServicePlace;
@@ -44,6 +49,7 @@ public class SearchService {
     private static final int MAX_QUERY_LENGTH = 200;
 
     private final QueryParser queryParser;
+    private final RouteQuerySplitter routeQuerySplitter;
     private final SearchDocumentRepository searchDocumentRepository;
     private final SearchLogRepository searchLogRepository;
     private final EmbeddingService embeddingService;
@@ -53,21 +59,47 @@ public class SearchService {
     private final SttPromptProvider sttPromptProvider;
 
     public SearchResponseDTO search(SearchRequestDTO request) {
-        String query = request.getQuery();
-        if (query == null || query.isBlank() || query.strip().length() > MAX_QUERY_LENGTH) {
-            throw new GeneralException(SearchErrorCode.INVALID_QUERY);
-        }
-        return search(request.getTarget(), query, request.limitOrDefault(), null, System.currentTimeMillis());
+        String query = requireValidQuery(request.getQuery());
+        return search(request.getTarget(), query, query, request.limitOrDefault(), null, System.currentTimeMillis(), null);
     }
 
     public SearchResponseDTO searchVoice(VoiceSearchRequestDTO request) {
         long startedAt = System.currentTimeMillis();
         SttResult stt = sttService.transcribe(request.getAudio(), request.getDurationMs(), sttPromptProvider.prompt());
-        return search(request.getTarget(), stt.text(), request.limitOrDefault(), stt, startedAt);
+        return search(request.getTarget(), stt.text(), stt.text(), request.limitOrDefault(), stt, startedAt, null);
     }
 
-    private SearchResponseDTO search(SearchTarget target, String query, int limit, SttResult stt, long startedAt) {
+    public RouteSearchResponseDTO searchRoute(RouteSearchRequestDTO request) {
+        String query = requireValidQuery(request.getQuery());
+        return searchRoute(query, request.limitOrDefault(), null, System.currentTimeMillis());
+    }
+
+    public RouteSearchResponseDTO searchRouteVoice(VoiceRouteSearchRequestDTO request) {
+        long startedAt = System.currentTimeMillis();
+        SttResult stt = sttService.transcribe(request.getAudio(), request.getDurationMs(), sttPromptProvider.prompt());
+        return searchRoute(stt.text(), request.limitOrDefault(), stt, startedAt);
+    }
+
+    private RouteSearchResponseDTO searchRoute(String query, int limit, SttResult stt, long startedAt) {
+        RouteQuery route = routeQuerySplitter.split(query);
+        SearchResponseDTO origin = route.origin() == null ? null
+                : search(SearchTarget.ORIGIN, route.origin(), query, limit, stt, startedAt, null);
+        SearchResponseDTO destination = route.destination() == null ? null
+                : search(SearchTarget.DESTINATION, route.destination(), query, limit, stt, startedAt, route.routeOption());
+        return RouteSearchResponseDTO.of(route.mode(), stt, origin, destination);
+    }
+
+    private static String requireValidQuery(String query) {
+        if (query == null || query.isBlank() || query.strip().length() > MAX_QUERY_LENGTH) {
+            throw new GeneralException(SearchErrorCode.INVALID_QUERY);
+        }
+        return query;
+    }
+
+    private SearchResponseDTO search(SearchTarget target, String query, String rawQuery, int limit, SttResult stt,
+                                     long startedAt, RouteOption fallbackOption) {
         ParsedQuery parsed = queryParser.parse(query, target);
+        RouteOption routeOption = parsed.routeOption() != null ? parsed.routeOption() : fallbackOption;
 
         List<DocType> types = target == SearchTarget.ORIGIN
                 ? List.of(DocType.PLACE, DocType.NODE, DocType.SERVICE)
@@ -85,11 +117,11 @@ public class SearchService {
         SearchLog searchLog = searchLogRepository.save(SearchLog.builder()
                 .target(target)
                 .inputType(stt == null ? InputType.TEXT : InputType.VOICE)
-                .queryText(query)
+                .queryText(rawQuery)
                 .normalizedQuery(parsed.normalized())
                 .transcript(stt == null ? null : stt.text())
                 .sttEngine(stt == null ? null : stt.engine().name())
-                .routeOption(parsed.routeOption())
+                .routeOption(routeOption)
                 .status(status)
                 .candidateIds(candidates.stream().map(CandidateDTO::getCandidateId).toList())
                 .latencyMs((int) (System.currentTimeMillis() - startedAt))
