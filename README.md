@@ -32,9 +32,9 @@ SMAP은 캠퍼스의 건물·강의실·교수연구실·편의시설을 검색�
   <tr>
     <td align="center">
       <img src="https://github.com/hyeonkangkimm.png" width="180" height="180" alt="김현강" /><br/>
-      <a href="https://github.com/hyeonkangkimm">김현강</a>
+      <a href="https://github.com/hyeonkangkimm">김현강</a><br/>데이터 전처리 / MAP
     </td>
-    <td align="center">김태현</td>
+    <td align="center">김태현<br/>NFC / AI</td>
   </tr>
 </table>
 
